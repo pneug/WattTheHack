@@ -144,7 +144,8 @@ def summarize(per_window: pd.DataFrame) -> dict:
 def energy_interval(e_pred_kwh: float, config="best", target: str = "park", level: float = 0.95) -> tuple[float, float]:
     """kWh interval for an outage's predicted energy, from the errors in the backtest windows.
 
-    Reads experiments/runs/<id>.json (run `python -m pipeline.run <id>` first). In those simulated
+    Reads experiments/dense/<id>.json (83 outages, one starting every day; `python -m pipeline.dense <id>`),
+    else experiments/runs/<id>.json (28 outages; `python -m pipeline.run <id>`). In those simulated
     3-day outages the prediction was off by e_dev_pct; the interval inverts the central `level` of
     those errors: actual = predicted / (1 + dev). Skewed on purpose: calm windows give large relative errors.
     """
@@ -153,7 +154,10 @@ def energy_interval(e_pred_kwh: float, config="best", target: str = "park", leve
 
     from pipeline.experiments import BEST
     exp_id = BEST if config == "best" else config
-    path = Path(__file__).resolve().parents[1] / "experiments" / "runs" / f"{exp_id}.json"
+    exp = Path(__file__).resolve().parents[1] / "experiments"
+    path = exp / "dense" / f"{exp_id}.json"
+    if not path.exists():
+        path = exp / "runs" / f"{exp_id}.json"
     pw = pd.DataFrame(json.loads(path.read_text())["per_window"])
     dev = pw.loc[(pw["kind"] == "bt") & (pw["target"] == target), "e_dev_pct"].dropna() / 100
     lo_q, hi_q = np.quantile(dev, [(1 - level) / 2, (1 + level) / 2])

@@ -155,7 +155,7 @@ Change: evaluation only (`evaluate.windows(step_days=1)`); results in `experimen
 Result: park |E dev| E00 10.8 % -> E12 8.3 % (diff -2.5 +- 1.6), 67 % of outages better. E11 / E12_smooth30 / E15_refsel_dir8 tie with E12 (|diff| <= 0.07). E09 (power fix only) +1.0, HGB +1.1, E10 (direction only) +1.6 vs E12. Error falls with wind level: E12 10.7 / 8.0 / 6.3 % (low / mid / high tercile of H mean wind). Hidden-like outages (>= 60 % south-west, H >= 5.5 m/s; 13 overlapping windows): E12 3.2 %, E00 7.8 %, same ranking.
 Insight: the ranking from the 28-window backtest holds; the top configs are truly tied. The judged outage (89 % south-west, H 6.8 m/s) is the regime where the model is most accurate.
 kWh interval for 1-3 Sep (322.4 MWh): 28 windows 247-378; dense 262-387 (leave-one-out coverage 92.8 %); dense with H mean >= 6 m/s 270-366 (n = 34, coverage 91 %); hidden-like 308-352 (n = 13, too few to trust).
-Decision: keep E12. Candidate: compute `energy_interval` from the dense windows (more stable quantiles).
+Decision: keep E12. `energy_interval` now uses the dense windows (more stable quantiles): hidden 1-3 Sep 322.4 MWh (95 %: 261.9-387.2).
 
 ### E13 direction completeness / E14 weather-similarity weights / E15 automatic reference selection
 Change: E13: direction terms on the smoothed H, plus a per-sector O slope (8 or 4 sectors). E14: training steps weighted by how common their wind-direction sector (x speed tercile) is inside the outage. E15: greedy forward selection of the 7 smoothed references by blocked CV inside the training data, with or without direction octants.

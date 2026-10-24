@@ -50,7 +50,7 @@ Consequence: the remaining error is mostly weather luck that the neighbour data 
 
 **M7. Uncertainty is shown, and it is calibrated.**
 - **Every 10-minute step** gets a 95% band. Its width depends on the wind level, because errors grow with wind speed. In the simulated outages the true wind fell inside the band 94.8% of the time (target 95%).
-- **The lost energy** gets a 95% range built from the energy errors of the 28 simulated outages: -15% to +30% around the estimate. The range is lopsided because calm periods produce large relative errors.
+- **The lost energy** gets a 95% range built from the energy errors of 83 simulated outages (one starting every day, so the range edges are stable): about -19% to +20% around the estimate.
 - **Is that range honest?** For each of the 83 daily outages we built the range from the other outages only. The true energy fell inside it 93% of the time, close to the 95% target.
 
 *Visual:* `fig_calibration`, `fig_example`.
@@ -67,7 +67,7 @@ Consequence: the remaining error is mostly weather luck that the neighbour data 
 | Park energy bias (mean signed) | -8.5% | +1.4% | bias removed |
 | 95% band coverage | 94.6% | 94.8% | on target |
 
-Lost energy for the judged outage, 1–3 Sep: **322 MWh (95% range 247–378 MWh)**.
+Lost energy for the judged outage, 1–3 Sep: **322 MWh (95% range 262–387 MWh)**.
 *Visual:* `fig_scorecard`, `fig_winrate` (the final model beats the baseline in 85–90% of the outages on wind and power RMSE).
 
 **M9. Built-in safety rules.**
@@ -116,7 +116,7 @@ Ranked by how much they help the story. ★ = recommended.
 |---|---|---|---|
 | ★1 | "We tested on 28 simulated outages, not one lucky week." | The validation week looked perfect (+0.1%) but hid ±19% per turbine | `fig_distribution` |
 | ★2 | "Average the power, not the wind." | Bias -8.5% → +1.4%; the largest single gain (11.0% → 9.0%) | `fig_power_evidence` |
-| ★3 | "What remains is weather luck, so we show a range." | Park error = 3-day average wind error; ±11% per outage. Hidden window: 322 MWh (247–378) | `fig_bias_noise` |
+| ★3 | "What remains is weather luck, so we show a range." | Park error = 3-day average wind error; ±11% per outage. Hidden window: 322 MWh (262–387) | `fig_bias_noise` |
 | ★4 | "The transparent formula beat the black box." | 8.5% vs 9.7%; one line of maths, every number explainable | `fig_blackbox` |
 | 5 | "Wind direction decides how much wind reaches T." | 84–93% of H's wind depending on direction | `fig_direction` |
 | 6 | "Gusts are noise; we use hourly trends." | Correlation 0.80 (10 min) vs 0.89 (3 h) | `fig_smoothing` |

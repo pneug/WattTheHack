@@ -43,7 +43,7 @@ To add an entry, write a function or class in the registry. Then add a config wi
 | Mean \|energy dev\| per turbine (not judged) | 13.8% | 10.0% |
 | Energy bias T1/T2/T3 | -8.6/-5.4/-7.2% | +2.3/+1.5/+2.2% |
 | 95% band coverage | 94.6% | 94.8% |
-| Lost energy 1–3 Sep (hidden) | | 322.4 MWh (95%: 247.1–377.6) |
+| Lost energy 1–3 Sep (hidden) | | 322.4 MWh (95%: 261.9–387.2) |
 
 ## Using it in the Streamlit app
 
@@ -59,13 +59,9 @@ def get_data():
 
 res = run_outage(get_data(), start, end)    # config="best"; naive timestamps, end exclusive
 total_kwh = sum(res[f"{t}_loss_kwh"].sum() for t in ["T1", "T2", "T3"])
-lo_kwh, hi_kwh = energy_interval(total_kwh)  # 95% range from the backtest (needs experiments/runs/<BEST>.json)
+lo_kwh, hi_kwh = energy_interval(total_kwh)  # 95% range from the 83 dense outages (experiments/dense/<BEST>.json)
 ```
 
 - **Band:** `<T>_lo` / `<T>_hi` give the band for the wind-speed chart.
 - **Methodology tab:** the figures in `pipeline/figures.py` return Plotly figures you can drop straight into the tab.
-- **After changing BEST:** run `python -m pipeline.run <BEST>` once, so that `energy_interval` has its backtest file.
-
-## Optional side experiments
-
-See [NN and TabPFN experiments](side-experiments.md) for results, API setup, reproducible commands and execution status. `S01_mlp_matched`, `S02_mlp_refs` and `S03_tabpfn35_refs` use the standard runner/logging. `--all` excludes these unless `--include-side-experiments` is supplied. TabPFN uses an isolated optional environment and resumes complete windows from local checkpoints.
+- **After changing BEST:** run `python -m pipeline.run <BEST>` and `python -m pipeline.dense <BEST>` once, so that `energy_interval` has its backtest file.

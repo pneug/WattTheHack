@@ -556,5 +556,29 @@ def build_report(path="reports/experiments.html"):
     return out
 
 
+
+APP_FIGURES = ROOT / "reports" / "app_figures"
+
+
+def export_app_figures(out=APP_FIGURES) -> list[Path]:
+    """Write the figures the app's methodology tabs show as small Plotly JSON files (no step files needed at runtime)."""
+    from pipeline.experiments import CONFIGS
+
+    res = load_results()
+    res = res[~res.id.map(lambda i: CONFIGS.get(i, {}).get("side_experiment", False))]  # optional curiosity runs
+    figs = {"distribution": fig_distribution(), "power_evidence": fig_power_evidence(), "bias_noise": fig_bias_noise(),
+            "blackbox": fig_blackbox(res), "direction": fig_direction(), "smoothing": fig_smoothing(res),
+            "leaderboard": fig_leaderboard(res), "calibration": fig_calibration()}
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for name, fig in figs.items():
+        path = out / f"{name}.json"
+        path.write_text(json.dumps(_plain(fig.to_plotly_json()), ensure_ascii=False) + "\n", encoding="utf-8")
+        paths.append(path)
+    return paths
+
+
 if __name__ == "__main__":
     print(build_report())
+    print(*export_app_figures(), sep="\n")

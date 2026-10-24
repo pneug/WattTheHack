@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
 
+import methods_tabs
 from baseline import OLSBaseline, park_means
 from preprocessing import (
     REFERENCES,
@@ -798,25 +799,10 @@ def render_turbine_status(
 
 
 def render_methodology(result: AnalysisResult | None) -> None:
-    """Describe the implemented baseline and show metrics only for observed targets."""
-    st.subheader("Methodology & Validation")
+    """Explain the method (methods_tabs.py), then show metrics only for observed targets."""
+    methods_tabs.render_methodology_story()
 
-    st.markdown("#### Baseline Model")
-    st.markdown(
-        "The model fits a separate ordinary least-squares relationship for each uploaded "
-        "target turbine using the mean wind speeds from parks H and O. The selected "
-        "outage dates are excluded from fitting; predicted wind speed is converted "
-        "through that turbine's supplied power curve."
-    )
-    st.markdown("### Prediction Method")
-    st.markdown(
-        "Raw turbine uploads are cleaned with the project's preprocessing rules. "
-        "For each uploaded target turbine, the OLS baseline predicts wind speed from "
-        "the mean park H and park O wind speeds. The selected outage window is excluded "
-        "from model fitting. Predicted wind speed is mapped to power using that "
-        "turbine's supplied power curve, then multiplied by 1/6 hour per step."
-    )
-    st.markdown("### Accuracy and Uncertainty")
+    st.markdown("#### Check on your selected period")
     st.markdown(
         "Accuracy is calculated only for timestamps in the selected period where "
         "an uploaded target turbine has an observed wind-speed value. Per-turbine "
@@ -1040,11 +1026,7 @@ def main() -> None:
 
     if tried_tab.open:
         with tried_tab:
-            st.subheader("Things We Tried but Didn't Work Out")
-            st.caption(
-                "Document approaches that did not work so the team can avoid "
-                "repeating them."
-            )
+            methods_tabs.render_tried()
 
 
 if __name__ == "__main__":
