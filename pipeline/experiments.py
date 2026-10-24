@@ -116,3 +116,23 @@ add("E12_dir8_smooth60_power", "E10_dir8_smooth60", "dir octant on 60-min smooth
     interval=SB, power={"mode": "expected_gauss"})
 add("E12_dir8_smooth30_power", "E12_dir8_smooth60_power", "dir octant on 30-min smoothed refs, sigma per bin, E[P(v)]",
     features=[{"name": "park_means_smooth", "steps": 3}, DIR8])
+
+# Round 3: direction completeness, weather-similarity weights, automatic reference selection
+BST = "E12_dir8_smooth60_power"
+SM6 = {"name": "park_means_smooth", "steps": 6}
+add("E13_dir8_smoothint", BST, "dir octant: H interaction terms use the 60-min smoothed H",
+    features=[SM6, {"name": "direction", "sectors": 8, "smooth_steps": 6}])
+add("E13_dir8_O", "E13_dir8_smoothint", "dir octant + per-sector O slope (smoothed)",
+    features=[SM6, {"name": "direction", "sectors": 8, "smooth_steps": 6, "o_factor": True}])
+add("E13_dir4_O", "E13_dir8_O", "dir quadrant + per-sector O slope (smoothed)",
+    features=[SM6, {"name": "direction", "sectors": 4, "smooth_steps": 6, "o_factor": True}])
+for _f in (0.2, 0.5):
+    add(f"E14_dirmatch_f0{int(_f * 10)}", BST, f"train weights match the outage's wind-direction mix (floor {_f})",
+        weights={"name": "direction_match", "sectors": 8, "floor": _f})
+add("E14_dirspeed_match", BST, "train weights match the outage's direction x H-speed tercile mix (floor 0.2)",
+    weights={"name": "direction_match", "sectors": 8, "floor": 0.2, "speed_bins": 3})
+_RS = {"name": "all_refs_smooth", "steps": 6}
+add("E15_refsel", BST, "automatic reference selection (forward CV) on 7 smoothed refs",
+    features=[_RS], model={"name": "ols_forward"})
+add("E15_refsel_dir8", BST, "automatic reference selection + direction octants",
+    features=[_RS, DIR8], model={"name": "ols_forward"})

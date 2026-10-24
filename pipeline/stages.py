@@ -12,6 +12,9 @@ Rule for every feature: read reference turbines (parks H and O) only, never park
 
 from __future__ import annotations
 
+import inspect
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -50,6 +53,12 @@ def f_park_means_smooth(data: Data, steps: int) -> pd.DataFrame:
     return sm.rename(columns=lambda c: f"{c}_s{steps}")
 
 
+def f_all_refs_smooth(data: Data, steps: int) -> pd.DataFrame:
+    """Centred rolling mean of each of the 7 references over `steps` steps."""
+    sm = f_all_refs(data).rolling(steps, center=True, min_periods=steps // 2 + 1).mean()
+    return sm.rename(columns=lambda c: f"{c}_s{steps}")
+
+
 def f_lags(data: Data, steps: list[int], parks=("H", "O")) -> pd.DataFrame:
     """Park means shifted by k steps (k > 0: value from k steps earlier)."""
     pm = park_means(data["wind_speed"])
@@ -68,20 +77,40 @@ def f_hour(data: Data, interact: bool = True) -> pd.DataFrame:
     return out
 
 
-def f_direction(data: Data, sectors: int = 0) -> pd.DataFrame:
-    """Circular-mean H wind direction as sin/cos, or as sector dummies x H park mean (sectors > 0)."""
+def _h_direction(data: Data) -> pd.Series:
+    """Circular-mean wind direction of park H in degrees [0, 360) (NaN if no H turbine reports)."""
     wd = np.deg2rad(data["wind_direction"][H_COLS])
     s, c = np.sin(wd).mean(axis=1, skipna=True), np.cos(wd).mean(axis=1, skipna=True)
+    return np.rad2deg(np.arctan2(s, c)) % 360
+
+
+def _sector(deg: pd.Series, sectors: int) -> pd.Series:
+    """Sector index 0..sectors-1 (sector 0 is centred on north); NaN where deg is NaN."""
+    return ((deg + 180 / sectors) % 360) // (360 / sectors)
+
+
+def f_direction(data: Data, sectors: int = 0, smooth_steps: int = 0, o_factor: bool = False) -> pd.DataFrame:
+    """Circular-mean H wind direction as sin/cos, or as sector dummies x H park mean (sectors > 0).
+
+    smooth_steps > 0: the interaction terms use the H (and O) mean smoothed over that many steps.
+    o_factor: also add O_x_sec{i}, a separate O slope per sector.
+    """
     if sectors == 0:
+        wd = np.deg2rad(data["wind_direction"][H_COLS])
+        s, c = np.sin(wd).mean(axis=1, skipna=True), np.cos(wd).mean(axis=1, skipna=True)
         return pd.DataFrame({"dir_sin": s, "dir_cos": c})
-    deg = np.rad2deg(np.arctan2(s, c)) % 360
-    sec = ((deg + 180 / sectors) % 360) // (360 / sectors)
-    H = park_means(data["wind_speed"])["H"]
+    deg = _h_direction(data)
+    sec = _sector(deg, sectors)
+    pm = park_means(data["wind_speed"])
+    if smooth_steps:
+        pm = pm.rolling(smooth_steps, center=True, min_periods=smooth_steps // 2 + 1).mean()
     out = {}
     for i in range(1, sectors):
         d = (sec == i).astype(float).where(deg.notna())
         out[f"sec{i}"] = d
-        out[f"H_x_sec{i}"] = H * d
+        out[f"H_x_sec{i}"] = pm["H"] * d
+        if o_factor:
+            out[f"O_x_sec{i}"] = pm["O"] * d
     return pd.DataFrame(out)
 
 
@@ -117,6 +146,7 @@ FEATURES = {
     "park_means": f_park_means,
     "all_refs": f_all_refs,
     "park_means_smooth": f_park_means_smooth,
+    "all_refs_smooth": f_all_refs_smooth,
     "lags": f_lags,
     "hour": f_hour,
     "direction": f_direction,
@@ -164,16 +194,47 @@ def w_window(index: pd.DatetimeIndex, window, days: float) -> np.ndarray:
     return (_dist_days(index, window) <= days).astype(float)
 
 
+def w_direction_match(index: pd.DatetimeIndex, window, data: Data, sectors: int = 8, floor: float = 0.2,
+                      speed_bins: int = 0) -> np.ndarray:
+    """Weight training steps by how common their weather is INSIDE the outage window.
+
+    Weather = H wind-direction sector (x H-speed tercile if speed_bins > 1). H and O are known during the
+    outage (only T is missing), so the window's histogram is legitimate. Weight = floor + (1 - floor) * share / max share.
+    """
+    deg = _h_direction(data).reindex(index)
+    key = _sector(deg, sectors)
+    if speed_bins > 1:
+        H = park_means(data["wind_speed"])["H"].reindex(index)
+        q = H.quantile(np.linspace(0, 1, speed_bins + 1)[1:-1]).values
+        key = key * speed_bins + pd.Series(np.searchsorted(q, H.values, side="right"), index=index).where(H.notna())
+    inside = in_window_mask(index, window)
+    share = key[inside].value_counts(normalize=True)
+    if share.empty:
+        return np.ones(len(index))
+    w = floor + (1 - floor) * key.map(share).fillna(0.0) / share.max()
+    return np.where(key.isna(), floor, w).astype(float)
+
+
+def in_window_mask(index: pd.DatetimeIndex, window) -> np.ndarray:
+    start, end = (pd.Timestamp(x) for x in window)
+    return np.asarray((index >= start) & (index < end))
+
+
 WEIGHTS = {
+    "direction_match": w_direction_match,
     "none": w_none,
     "exp_decay": w_exp_decay,
     "window": w_window,
 }
 
 
-def sample_weights(index: pd.DatetimeIndex, window, spec) -> np.ndarray:
+def sample_weights(index: pd.DatetimeIndex, window, spec, data: Data | None = None) -> np.ndarray:
+    """Weights for every step; `data` is passed only to weight functions that declare a `data` argument."""
     name, params = _spec(spec)
-    return WEIGHTS[name](index, window, **params)
+    fn = WEIGHTS[name]
+    if "data" in inspect.signature(fn).parameters:
+        params["data"] = data
+    return fn(index, window, **params)
 
 
 # ---------------------------------------------------------------- models
@@ -259,7 +320,58 @@ class HGB:
         return {"type": "hgb", "n_features": len(self.cols_)}
 
 
+class OLSForward(OLS):
+    """OLS with automatic reference selection: greedy forward choice among the reference columns.
+
+    Reference columns are those named like H1_s6 / O2_s6. All other columns are always kept. Each candidate
+    is scored by blocked K-fold CV (contiguous time folds) on the TRAINING rows only; selection stops when the
+    CV RMSE improves by less than `min_gain` (relative).
+    """
+
+    def __init__(self, folds: int = 5, min_gain: float = 0.005):
+        self.folds, self.min_gain = folds, min_gain
+
+    def _cv_rmse(self, X: pd.DataFrame, y: np.ndarray, w: np.ndarray, cols: list) -> float:
+        n = len(y)
+        edges = np.linspace(0, n, self.folds + 1).astype(int)
+        se = 0.0
+        for a, b in zip(edges[:-1], edges[1:]):
+            te = np.zeros(n, dtype=bool)
+            te[a:b] = True
+            m = OLS().fit(X.loc[~te, cols], pd.Series(y[~te]), w[~te])
+            se += float(((y[te] - m.predict(X.loc[te, cols])) ** 2).sum())
+        return float(np.sqrt(se / n))
+
+    def fit(self, X, y, w=None):
+        w = np.ones(len(X)) if w is None else np.asarray(w, dtype=float)
+        X = X.reset_index(drop=True)
+        yv = y.values
+        refs = [c for c in X.columns if re.match(r"^[HO]\d", c)]
+        fixed = [c for c in X.columns if c not in refs]
+        chosen, best = [], np.inf
+        if fixed:
+            best = self._cv_rmse(X, yv, w, fixed)
+        while True:
+            left = [c for c in refs if c not in chosen]
+            if not left:
+                break
+            scores = {c: self._cv_rmse(X, yv, w, fixed + chosen + [c]) for c in left}
+            c = min(scores, key=scores.get)
+            if chosen and scores[c] > best * (1 - self.min_gain):
+                break
+            chosen.append(c)
+            best = scores[c]
+        self.selected_ = chosen
+        self.cv_rmse_ = best
+        super().fit(X[fixed + chosen], pd.Series(yv), w)
+        return self
+
+    def describe(self) -> dict:
+        return {"selected_refs": list(self.selected_), "cv_rmse": float(self.cv_rmse_), **super().describe()}
+
+
 MODELS = {
+    "ols_forward": OLSForward,
     "ols": OLS,
     "variance_ratio": VarianceRatioOLS,
     "ridge": Ridge,

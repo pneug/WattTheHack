@@ -35,18 +35,19 @@ def judge_metrics(pred, kw, actual, curve, lo=None, hi=None) -> dict:
     return m
 
 
-def windows(data=None) -> list[tuple[str, pd.Timestamp, pd.Timestamp]]:
+def windows(data=None, step_days: int = 3) -> list[tuple[str, pd.Timestamp, pd.Timestamp]]:
     """3-day blocks anchored at HIDDEN[0] (excluding the hidden block), plus "val". End is exclusive."""
     data = core.load_data() if data is None else data
     idx = data["wind_speed"].index
     first, last = idx.min().normalize(), idx.max() + pd.Timedelta(minutes=10)
     anchor = HIDDEN[0]
+    step = pd.Timedelta(days=step_days)
     out = []
-    s = anchor - ((anchor - first) // BLOCK) * BLOCK
+    s = anchor - ((anchor - first) // step) * step
     while s + BLOCK <= last:
-        if s != anchor:
+        if not _overlaps(s, s + BLOCK, *HIDDEN):
             out.append((f"bt_{s:%m%d}", s, s + BLOCK))
-        s += BLOCK
+        s += step
     out.append(("val", *VAL))
     return out
 
@@ -72,12 +73,12 @@ def _oos_recalibrate(res: dict, config: dict, curve) -> dict:
     return res
 
 
-def backtest(config, data=None, curve=None) -> tuple[pd.DataFrame, pd.DataFrame]:
+def backtest(config, data=None, curve=None, step_days: int = 3) -> tuple[pd.DataFrame, pd.DataFrame]:
     cfg = core.get_config(config)
     data = core.load_data() if data is None else data
     curve = load_power_curve() if curve is None else curve
     res = {}
-    for name, s, e in windows(data):
+    for name, s, e in windows(data, step_days):
         assert not _overlaps(s, e, *HIDDEN), f"{name} overlaps the hidden window"
         known = data["wind_speed"][TARGETS].reindex(pd.date_range(s, e, freq="10min", inclusive="left"))
         if name != "val" and known.notna().to_numpy().mean() < MIN_KNOWN:

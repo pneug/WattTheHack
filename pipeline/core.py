@@ -47,7 +47,7 @@ def fit_predict(data: stages.Data, config, window, targets=TARGETS,
     curve = load_power_curve() if curve is None else curve
     X = stages.build_X(data, cfg["features"])
     test = in_window(X.index, window)
-    w = stages.sample_weights(X.index, window, cfg["weights"])
+    w = stages.sample_weights(X.index, window, cfg["weights"], data)
     x_ok = X.notna().all(axis=1).values
     out = {}
     for t in targets:

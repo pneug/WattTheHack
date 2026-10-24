@@ -5,6 +5,8 @@
 ```bash
 python -m pipeline.run E12_dir8_smooth60_power  # backtest one config -> experiments/results.csv + LOG.md leaderboard
 python -m pipeline.run --all                 # every config in pipeline/experiments.py
+python -m pipeline.dense <id> [...]          # 83 overlapping outages (one per day) -> experiments/dense/
+python -m pipeline.dense --analyze <id> ...  # paired tests, hidden-like regime, kWh interval coverage
 python -m pipeline.submit                    # BEST config on 1-3 Sep -> submission/hidden_predictions.csv
 python -m pipeline.figures                   # reports/experiments.html
 ```
@@ -63,3 +65,7 @@ lo_kwh, hi_kwh = energy_interval(total_kwh)  # 95% range from the backtest (need
 - **Band:** `<T>_lo` / `<T>_hi` give the band for the wind-speed chart.
 - **Methodology tab:** the figures in `pipeline/figures.py` return Plotly figures you can drop straight into the tab.
 - **After changing BEST:** run `python -m pipeline.run <BEST>` once, so that `energy_interval` has its backtest file.
+
+## Optional side experiments
+
+See [NN and TabPFN experiments](side-experiments.md) for results, API setup, reproducible commands and execution status. `S01_mlp_matched`, `S02_mlp_refs` and `S03_tabpfn35_refs` use the standard runner/logging. `--all` excludes these unless `--include-side-experiments` is supplied. TabPFN uses an isolated optional environment and resumes complete windows from local checkpoints.

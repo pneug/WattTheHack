@@ -10,9 +10,17 @@ Decision metric: backtest (28 blocks of 3 days anchored at 1 Sep, each fitted wi
 | id | change (desc) | bt park abs E dev [%] (judged) | bt ws RMSE | bt P RMSE [kW] | bt per-turbine abs E dev [%] | T1/T2/T3 bias [%] | val ws RMSE | val park E dev [%] | 95% cover | best |
 |---|---|---|---|---|---|---|---|---|---|---|
 | E11_dir_lags_power | dir sin/cos + lags, sigma per bin, E[P(v)] | 8.20 | 1.207 | 689.9 | 11.27 | +2.4/+2.3/+3.0 | 1.350 | +3.18 | 0.95 |  |
+| E15_refsel_dir8 | automatic reference selection + direction octants | 8.28 | 1.206 | 685.9 | 9.97 | +1.2/+2.2/+1.4 | 1.322 | +2.98 | 0.94 |  |
 | E12_dir8_smooth30_power | dir octant on 30-min smoothed refs, sigma per bin, E[P(v)] | 8.50 | 1.211 | 689.7 | 10.13 | +2.6/+1.7/+2.4 | 1.346 | +1.54 | 0.95 |  |
+| E14_dirmatch_f02 | train weights match the outage's wind-direction mix (floor 0.2) | 8.50 | 1.198 | 681.0 | 9.92 | +2.4/+1.5/+2.2 | 1.330 | +2.70 | 0.95 |  |
+| E14_dirmatch_f05 | train weights match the outage's wind-direction mix (floor 0.5) | 8.52 | 1.199 | 681.7 | 9.96 | +2.4/+1.5/+2.2 | 1.329 | +2.61 | 0.95 |  |
 | E12_dir8_smooth60_power | dir octant on 60-min smoothed refs, sigma per bin, E[P(v)] | 8.53 | 1.200 | 682.3 | 9.99 | +2.3/+1.5/+2.2 | 1.329 | +2.53 | 0.95 | **BEST** |
 | E11_dir8_lags_power | dir octant + lags, sigma per bin, E[P(v)] | 8.56 | 1.193 | 680.0 | 9.98 | +2.2/+1.2/+2.1 | 1.329 | +2.33 | 0.95 |  |
+| E13_dir8_smoothint | dir octant: H interaction terms use the 60-min smoothed H | 8.59 | 1.200 | 682.1 | 10.04 | +2.3/+1.3/+2.1 | 1.327 | +2.56 | 0.95 |  |
+| E15_refsel | automatic reference selection (forward CV) on 7 smoothed refs | 8.65 | 1.228 | 701.7 | 12.38 | +2.8/+2.5/+1.8 | 1.354 | +3.96 | 0.95 |  |
+| E14_dirspeed_match | train weights match the outage's direction x H-speed tercile mix (floor 0.2) | 8.67 | 1.198 | 681.8 | 10.15 | +2.4/+1.3/+2.0 | 1.322 | +1.88 | 0.95 |  |
+| E13_dir8_O | dir octant + per-sector O slope (smoothed) | 8.78 | 1.197 | 678.4 | 10.17 | +2.6/+1.2/+1.8 | 1.346 | +2.98 | 0.95 |  |
+| E13_dir4_O | dir quadrant + per-sector O slope (smoothed) | 8.87 | 1.211 | 690.3 | 11.22 | +3.1/+1.4/+2.0 | 1.353 | +4.41 | 0.95 |  |
 | E09_power_gauss_bins | E[P(v)] with sigma per wind-speed bin | 9.03 | 1.261 | 721.5 | 14.03 | +4.6/+3.0/+3.4 | 1.405 | +1.90 | 0.95 |  |
 | E09_power_gauss_bins10 | E[P(v)] with sigma per wind-speed bin (10) | 9.05 | 1.261 | 721.5 | 14.03 | +4.4/+3.0/+3.3 | 1.405 | +1.71 | 0.95 |  |
 | E09_power_gauss_bins3 | E[P(v)] with sigma per wind-speed bin (3) | 9.11 | 1.261 | 721.7 | 14.15 | +5.0/+3.3/+3.7 | 1.405 | +2.17 | 0.95 |  |
@@ -26,11 +34,11 @@ Decision metric: backtest (28 blocks of 3 days anchored at 1 Sep, each fitted wi
 | E04_variance_ratio | variance-ratio MCP instead of OLS | 10.74 | 1.328 | 768.9 | 14.36 | -2.0/-1.8/-2.2 | 1.617 | +13.36 | 0.94 |  |
 | E06_dir8 | + direction octant (x H) | 10.92 | 1.232 | 715.3 | 11.81 | -8.4/-6.4/-7.8 | 1.369 | -0.99 | 0.94 |  |
 | E02_smooth30min | references smoothed over 30 min | 10.97 | 1.241 | 725.2 | 13.80 | -8.6/-5.4/-7.2 | 1.383 | +1.24 | 0.95 |  |
-| E00_baseline | OLS T = a + b*H + c*O, static per turbine | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E05_sigma_bins | residual spread per wind-speed bin (5) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
-| E07_conformal_bins | conformal band per wind-speed bin (5, OOS) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
-| E07_gauss_oos | 95% band from out-of-sample sigma | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
+| E00_baseline | OLS T = a + b*H + c*O, static per turbine | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E07_conformal | conformal band (empirical quantiles, OOS) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
+| E07_gauss_oos | 95% band from out-of-sample sigma | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
+| E07_conformal_bins | conformal band per wind-speed bin (5, OOS) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E05_hinges | piecewise linear (knots 3/6/9 m/s) | 10.98 | 1.264 | 734.2 | 13.92 | -7.8/-4.4/-6.8 | 1.400 | -1.41 | 0.94 |  |
 | E06_lags | + references -20..+20 min | 11.00 | 1.224 | 715.0 | 13.80 | -8.6/-5.3/-7.2 | 1.364 | +2.09 | 0.95 |  |
 | E01_decay30 | time weights, half-life 30 d | 11.00 | 1.260 | 736.8 | 13.83 | -8.7/-5.5/-7.3 | 1.414 | +1.23 | 0.95 |  |
@@ -133,5 +141,25 @@ Decision: BEST (explainability wins ties). Hidden 1-3 Sep: see `python -m pipeli
 ### Note: decision metric switched to the park total
 Change: the judges score energy as the absolute deviation of the park total (the whole park is out; insurance pays the total). Leaderboard now sorts by bt park |E dev|.
 Result: park |E dev| E00 11.0 % -> E12 8.5 %; the top 4 configs are 8.2-8.6 %, within the noise (std per outage ~11 %, so +-2 pp on a 28-outage mean).
-Insight: at park level the gain is almost all bias removal (-8.5 % -> +1.4 %, noise unchanged). The power fix (E[P(v)]) is the main lever; direction sectors help per turbine and on RMSE but hardly on the park total (11.0 -> 10.9 %), because turbine errors cancel in the sum.
+Insight: at park level the gain is almost all bias removal (-8.5 % -> +1.4 %, noise unchanged). The power fix (E[P(v)]) is the main lever; direction sectors help per turbine and on RMSE but hardly on the park total (11.0 -> 10.9 %): direction fixes the differences between turbines, which cancel in the sum anyway; the error the turbines share (window-mean residuals correlate 0.64-0.84) is what drives the park total.
 Decision: keep E12 as BEST (most explainable of the top 4, best power RMSE after E11).
+
+### Diagnostic: where the remaining park error comes from (BEST)
+Change: none (analysis of the BEST backtest residuals).
+Result: per outage, park energy dev follows the 3-day mean wind error (r = -0.92). Residual autocorrelation 0.35 at 1 h, 0.11 at 3 h, ~0 at 6 h; window-mean residuals of T1-T3 correlate 0.64-0.84. Residuals just before/after an outage do not predict the in-window mean (r = -0.08 to 0.02); correcting with them makes park error worse (7.8 -> 10.9 % at half strength, 17.2 % at full).
+Insight: **the park energy error is the 3-day average wind error.** It is short-memory weather noise shared by all turbines, worth about +-11 % per outage; no edge correction or per-turbine fix can remove it. Hence the kWh interval.
+Decision: drop edge anchoring; report the noise as an interval.
+
+### Dense backtest (`python -m pipeline.dense`): 83 overlapping 3-day outages, one starting every day
+Change: evaluation only (`evaluate.windows(step_days=1)`); results in `experiments/dense/`. Paired SE: naive SE x sqrt(3) (windows overlap by 2 days).
+Result: park |E dev| E00 10.8 % -> E12 8.3 % (diff -2.5 +- 1.6), 67 % of outages better. E11 / E12_smooth30 / E15_refsel_dir8 tie with E12 (|diff| <= 0.07). E09 (power fix only) +1.0, HGB +1.1, E10 (direction only) +1.6 vs E12. Error falls with wind level: E12 10.7 / 8.0 / 6.3 % (low / mid / high tercile of H mean wind). Hidden-like outages (>= 60 % south-west, H >= 5.5 m/s; 13 overlapping windows): E12 3.2 %, E00 7.8 %, same ranking.
+Insight: the ranking from the 28-window backtest holds; the top configs are truly tied. The judged outage (89 % south-west, H 6.8 m/s) is the regime where the model is most accurate.
+kWh interval for 1-3 Sep (322.4 MWh): 28 windows 247-378; dense 262-387 (leave-one-out coverage 92.8 %); dense with H mean >= 6 m/s 270-366 (n = 34, coverage 91 %); hidden-like 308-352 (n = 13, too few to trust).
+Decision: keep E12. Candidate: compute `energy_interval` from the dense windows (more stable quantiles).
+
+### E13 direction completeness / E14 weather-similarity weights / E15 automatic reference selection
+Change: E13: direction terms on the smoothed H, plus a per-sector O slope (8 or 4 sectors). E14: training steps weighted by how common their wind-direction sector (x speed tercile) is inside the outage. E15: greedy forward selection of the 7 smoothed references by blocked CV inside the training data, with or without direction octants.
+Result (paired vs E12, 28 windows): E13 +0.06 to +0.34 (worse); E14 -0.02 / -0.01 (tie), direction x speed +0.14; E15 refs only +0.13, ws RMSE 1.228; E15_refsel_dir8 8.28 % (-0.24 +- 0.37), dense 8.27 vs 8.33 % (-0.06, 45 % wins). E15_refsel_dir8 keeps O1 in 93 % of fits plus one or two H turbines (H2 53 %, H5 39 %); H3 and H4 never.
+Insight: direction is already captured by the offset and H factor per sector; matching the training weather adds nothing because the model is already linear in the right inputs. Automatic selection reaches the same accuracy with 2-3 references: O1 carries most of the information.
+Decision: drop E13 and E14. E15_refsel_dir8: accuracy tie; possible use for the bonus criterion (automatic reference selection), not adopted as BEST.
+
