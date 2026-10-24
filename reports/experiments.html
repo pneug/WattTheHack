@@ -6,10 +6,13 @@
 <title>Experiment results</title>
 <script src="https://cdn.plot.ly/plotly-4.1.1.min.js" charset="utf-8"></script>
 <style>
-body {font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #1f2933; max-width: 980px; margin: 0 auto; padding: 24px 16px; background: #fff}
+body {font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #1f2933; max-width: 980px; margin: 0 auto; padding: 24px 16px; background: #fff; line-height: 1.45}
 h1 {margin: 0 0 4px} .sub {color: #6b7785; margin: 0 0 16px}
+h2 {margin: 40px 0 8px; padding-top: 12px; border-top: 1px solid #e6e9ee} h3 {margin: 18px 0 6px}
 .tldr {background: #f4f7f8; border-left: 4px solid #0b7a75; padding: 8px 20px; margin-bottom: 24px}
-.tldr li {margin: 6px 0} .fig {margin-bottom: 28px}
+.tldr li, .notes li {margin: 6px 0} .fig {margin-bottom: 28px}
+.card {border-left: 4px solid #0b7a75; padding: 2px 16px; margin: 20px 0 8px; background: #f7faf9}
+.card p {margin: 6px 0} .tag {font-weight: 600; color: #0b7a75; margin-right: 4px}
 </style>
 </head>
 <body>
@@ -17,15 +20,845 @@ h1 {margin: 0 0 4px} .sub {color: #6b7785; margin: 0 0 16px}
 <p class="sub">About 40 configurations tested on 28 simulated 3-day outages plus the 4–9 Sep validation window.</p>
 <div class="tldr"><b>TL;DR</b>
 <ul>
-  <li>Energy error per turbine and outage fell from 13.8 % to 10.0 % (27 % relative) with the final model E12_dir8_smooth60_power.</li>
-  <li>The baseline underestimated energy by 8.6 / 5.4 / 7.2 % (T1/T2/T3); the final model's bias is +2.3 / +1.5 / +2.2 %.</li>
-  <li>Gradient boosting reaches 10.8 %, the transparent final model 10.0 %; 95 % band coverage is 94.8 % (baseline 94.6 %).</li>
+  <li>Park energy error (the judged energy metric) fell from 11.0 % to 8.5 % per outage (22 % relative) with the final model E12_dir8_smooth60_power; wind and power RMSE fell 5 % and 7 %.</li>
+  <li>The gain comes from removing the bias: the baseline under-predicted the park energy by 8.5 % on average, the final model is +1.4 %; the outage-to-outage noise (±11 %) is weather luck and stays.</li>
+  <li>Gradient boosting reaches 9.7 %, the transparent final model 8.5 %; 95 % band coverage is 94.8 % (baseline 94.6 %).</li>
 </ul>
 </div>
+<h2>1. Final model vs baseline on the judged metrics</h2>
 <div class="fig" id="fig1"></div>
 <script>
 Plotly.newPlot("fig1", [
-{"customdata": [[1.3281, 768.8765, "E04_variance_ratio"], [1.2612, 723.9788, "E03_power_empirical"], [1.2598, 736.7598, "E01_decay30"], [1.241, 725.1705, "E02_smooth30min"], [1.2612, 736.7693, "E00_baseline"], [1.2612, 736.7693, "E05_sigma_bins"], [1.2612, 736.7693, "E07_conformal"], [1.2321, 715.2674, "E06_dir8"], [1.223, 700.2397, "E08_hgb"], [1.1995, 682.3263, "E12_dir8_smooth60_power"]], "hovertemplate": "%{customdata[2]}<br>|energy dev| %{x:.2f} %<br>wind RMSE %{customdata[0]:.3f} m/s<br>power RMSE %{customdata[1]:.0f} kW<extra></extra>", "marker": {"color": ["#c9ced6", "#c9ced6", "#c9ced6", "#c9ced6", "#8896a5", "#c9ced6", "#c9ced6", "#c9ced6", "#c9ced6", "#0b7a75"]}, "orientation": "h", "text": ["14.4 %", "14.2 %", "13.8 %", "13.8 %", "13.8 %", "13.8 %", "13.8 %", "11.8 %", "10.8 %", "10.0 %"], "textposition": "outside", "width": 0.55, "x": [14.3577, 14.182, 13.8284, 13.799, 13.7781, 13.7781, 13.7781, 11.8111, 10.8206, 9.9941], "y": ["E04: variance-ratio MCP instead of OLS", "E03: E[P(v)], empirical residuals", "E01: time weights, half-life 30 d", "E02: references smoothed over 30 min", "E00: OLS T = a + b*H + c*O, static per turbine", "E05: residual spread per wind-speed bin (5)", "E07: conformal band (empirical quantiles, OOS)", "E06: + direction octant (x H)", "E08: gradient boosting, refs + hour + direction + stddev", "E12: dir octant on 60-min smoothed refs, sigma per bin, E[P(v)]"], "type": "bar"}
+{"hovertemplate": "%{y}<br>%{text}<extra></extra>", "marker": {"color": ["#0b7a75", "#0b7a75", "#0b7a75", "#0b7a75", "#0b7a75", "#0b7a75"]}, "orientation": "h", "text": ["1.26 → 1.20 m/s (-5 %)", "0.94 → 0.89 m/s (-5 %)", "737 → 682 kW (-7 %)", "478 → 457 kW (-4 %)", "11.0 → 8.5 % (-22 %)", "13.8 → 10.0 % (-27 %)"], "textposition": "outside", "width": 0.55, "x": [-4.8922, -5.4746, -7.3894, -4.3378, -22.2738, -27.4639], "y": ["Wind speed RMSE", "Wind speed MAE", "Power RMSE", "Power MAE", "Energy deviation, park total (judged)", "Energy deviation, per turbine (not judged)"], "type": "bar"}
+],
+{
+ "template": {
+  "data": {
+   "barpolar": [
+    {
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "barpolar"
+    }
+   ],
+   "bar": [
+    {
+     "error_x": {
+      "color": "#2a3f5f"
+     },
+     "error_y": {
+      "color": "#2a3f5f"
+     },
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "bar"
+    }
+   ],
+   "carpet": [
+    {
+     "aaxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "baxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "type": "carpet"
+    }
+   ],
+   "choropleth": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "choropleth"
+    }
+   ],
+   "contourcarpet": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "contourcarpet"
+    }
+   ],
+   "contour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "contour"
+    }
+   ],
+   "heatmap": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "heatmap"
+    }
+   ],
+   "histogram2dcontour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2dcontour"
+    }
+   ],
+   "histogram2d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2d"
+    }
+   ],
+   "histogram": [
+    {
+     "marker": {
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "histogram"
+    }
+   ],
+   "mesh3d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "mesh3d"
+    }
+   ],
+   "parcoords": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "parcoords"
+    }
+   ],
+   "pie": [
+    {
+     "automargin": true,
+     "type": "pie"
+    }
+   ],
+   "scatter3d": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatter3d"
+    }
+   ],
+   "scattercarpet": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattercarpet"
+    }
+   ],
+   "scattergeo": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergeo"
+    }
+   ],
+   "scattergl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergl"
+    }
+   ],
+   "scattermap": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattermap"
+    }
+   ],
+   "scatterpolargl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolargl"
+    }
+   ],
+   "scatterpolar": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolar"
+    }
+   ],
+   "scatter": [
+    {
+     "fillpattern": {
+      "fillmode": "overlay",
+      "size": 10,
+      "solidity": 0.2
+     },
+     "type": "scatter"
+    }
+   ],
+   "scatterternary": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterternary"
+    }
+   ],
+   "surface": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "surface"
+    }
+   ],
+   "table": [
+    {
+     "cells": {
+      "fill": {
+       "color": "#EBF0F8"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "header": {
+      "fill": {
+       "color": "#C8D4E3"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "type": "table"
+    }
+   ]
+  },
+  "layout": {
+   "annotationdefaults": {
+    "arrowcolor": "#2a3f5f",
+    "arrowhead": 0,
+    "arrowwidth": 1
+   },
+   "autotypenumbers": "strict",
+   "coloraxis": {
+    "colorbar": {
+     "outlinewidth": 0,
+     "ticks": ""
+    }
+   },
+   "colorscale": {
+    "diverging": [
+     [
+      0,
+      "#8e0152"
+     ],
+     [
+      0.1,
+      "#c51b7d"
+     ],
+     [
+      0.2,
+      "#de77ae"
+     ],
+     [
+      0.3,
+      "#f1b6da"
+     ],
+     [
+      0.4,
+      "#fde0ef"
+     ],
+     [
+      0.5,
+      "#f7f7f7"
+     ],
+     [
+      0.6,
+      "#e6f5d0"
+     ],
+     [
+      0.7,
+      "#b8e186"
+     ],
+     [
+      0.8,
+      "#7fbc41"
+     ],
+     [
+      0.9,
+      "#4d9221"
+     ],
+     [
+      1,
+      "#276419"
+     ]
+    ],
+    "sequential": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ],
+    "sequentialminus": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ]
+   },
+   "colorway": [
+    "#636efa",
+    "#EF553B",
+    "#00cc96",
+    "#ab63fa",
+    "#FFA15A",
+    "#19d3f3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52"
+   ],
+   "font": {
+    "color": "#2a3f5f"
+   },
+   "geo": {
+    "bgcolor": "white",
+    "lakecolor": "white",
+    "landcolor": "white",
+    "showlakes": true,
+    "showland": true,
+    "subunitcolor": "#C8D4E3"
+   },
+   "hoverlabel": {
+    "align": "left"
+   },
+   "hovermode": "closest",
+   "paper_bgcolor": "white",
+   "plot_bgcolor": "white",
+   "polar": {
+    "angularaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "radialaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    }
+   },
+   "scene": {
+    "xaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "yaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "zaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    }
+   },
+   "shapedefaults": {
+    "line": {
+     "color": "#2a3f5f"
+    }
+   },
+   "ternary": {
+    "aaxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "baxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "caxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    }
+   },
+   "title": {
+    "x": 0.05
+   },
+   "xaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   },
+   "yaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   }
+  }
+ },
+ "shapes": [
+  {
+   "line": {
+    "color": "#1f2933",
+    "width": 1
+   },
+   "type": "line",
+   "x0": 0,
+   "x1": 0,
+   "xref": "x",
+   "y0": 0,
+   "y1": 1,
+   "yref": "y domain"
+  }
+ ],
+ "xaxis": {
+  "title": {
+   "text": "Change versus baseline (%), negative = better"
+  },
+  "range": [
+   -52.1814,
+   8
+  ],
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "yaxis": {
+  "autorange": "reversed",
+  "automargin": true,
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "title": {
+  "text": "<b>Better on every judged metric: park energy error falls by 22 %, the four tracking metrics by 4–7 %</b><br><span style='font-size:13px;color:#6b7785'>Final model vs baseline, pooled over 28 simulated 3-day outages (labels: baseline → final)</span>",
+  "x": 0.0,
+  "xanchor": "left",
+  "y": 0.95
+ },
+ "font": {
+  "family": "Segoe UI, Helvetica, Arial, sans-serif",
+  "size": 13,
+  "color": "#1f2933"
+ },
+ "margin": {
+  "l": 70,
+  "r": 30,
+  "t": 100,
+  "b": 60
+ },
+ "legend": {
+  "orientation": "h",
+  "y": -0.15
+ },
+ "height": 440,
+ "paper_bgcolor": "white",
+ "plot_bgcolor": "white"
+},
+{"responsive": true});
+</script>
+<div class="fig" id="fig2"></div>
+<script>
+Plotly.newPlot("fig2", [
+{"hovertemplate": "%{y}<br>final better in %{text}<extra></extra>", "marker": {"color": ["#0b7a75", "#0b7a75", "#0b7a75", "#7fbfba", "#7fbfba", "#7fbfba"]}, "orientation": "h", "text": ["85 % (71 of 84)", "90 % (76 of 84)", "85 % (71 of 84)", "69 % (58 of 84)", "64 % (18 of 28)", "68 % (57 of 84)"], "textposition": "outside", "width": 0.55, "x": [84.5238, 90.4762, 84.5238, 69.0476, 64.2857, 67.8571], "y": ["Wind speed RMSE", "Wind speed MAE", "Power RMSE", "Power MAE", "Energy deviation, park total (judged)", "Energy deviation, per turbine (not judged)"], "type": "bar"}
 ],
 {
  "template": {
@@ -798,8 +1631,4203 @@ Plotly.newPlot("fig1", [
     "width": 1
    },
    "type": "line",
-   "x0": 13.7781,
-   "x1": 13.7781,
+   "x0": 50,
+   "x1": 50,
+   "xref": "x",
+   "y0": 0,
+   "y1": 1,
+   "yref": "y domain"
+  }
+ ],
+ "annotations": [
+  {
+   "showarrow": false,
+   "text": "coin flip",
+   "x": 50,
+   "xanchor": "center",
+   "xref": "x",
+   "y": 1,
+   "yanchor": "bottom",
+   "yref": "y domain"
+  }
+ ],
+ "xaxis": {
+  "title": {
+   "text": "Share of simulated outages where the final model beats the baseline (%)"
+  },
+  "range": [
+   0,
+   112
+  ],
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "yaxis": {
+  "autorange": "reversed",
+  "automargin": true,
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "title": {
+  "text": "<b>Wind and power RMSE improve in 85–90 % of outages; power MAE and park energy only in 64–69 %</b><br><span style='font-size:13px;color:#6b7785'>Per outage and turbine (park rows: per outage); a reliable gain is far right of the 50 % line</span>",
+  "x": 0.0,
+  "xanchor": "left",
+  "y": 0.95
+ },
+ "font": {
+  "family": "Segoe UI, Helvetica, Arial, sans-serif",
+  "size": 13,
+  "color": "#1f2933"
+ },
+ "margin": {
+  "l": 70,
+  "r": 30,
+  "t": 100,
+  "b": 60
+ },
+ "legend": {
+  "orientation": "h",
+  "y": -0.15
+ },
+ "height": 440,
+ "paper_bgcolor": "white",
+ "plot_bgcolor": "white"
+},
+{"responsive": true});
+</script>
+<h3>Why the park error fell: bias vs noise</h3>
+<p>Each outage's park energy error = <b>bias</b> (the same direction every time, caused by the method) + <b>noise</b> (the weather luck of that window, sign changes from outage to outage). With absolute scoring the bias is added to every outage, so removing it lowers the expected error whatever the hidden window's weather. The baseline was -8.5 % on average (it under-predicted almost every outage); the final model is +1.4 %, which is within the ±4 % uncertainty of that average, so we do not chase it further.</p>
+<div class="fig" id="fig3"></div>
+<script>
+Plotly.newPlot("fig3", [
+{"hovertemplate": "%{x}<br>Bias (mean signed error): %{y:.1f} %<extra></extra>", "marker": {"color": "#d9822b"}, "name": "Bias (mean signed error)", "text": ["-8.5", "-7.8", "+2.0", "+1.4"], "textposition": "outside", "x": ["Baseline", "+ direction, smoothing", "+ power fix only", "Final model"], "y": [-8.4807, -7.7559, 1.9556, 1.4053], "type": "bar"},
+{"hovertemplate": "%{x}<br>Noise (std across outages): %{y:.1f} %<extra></extra>", "marker": {"color": "#c9ced6"}, "name": "Noise (std across outages)", "text": ["10.7", "11.3", "12.3", "11.4"], "textposition": "outside", "x": ["Baseline", "+ direction, smoothing", "+ power fix only", "Final model"], "y": [10.6966, 11.2801, 12.2654, 11.3974], "type": "bar"},
+{"hovertemplate": "%{x}<br>Mean |error| (what is judged): %{y:.1f} %<extra></extra>", "marker": {"color": "#0b7a75"}, "name": "Mean |error| (what is judged)", "text": ["11.0", "11.1", "9.0", "8.5"], "textposition": "outside", "x": ["Baseline", "+ direction, smoothing", "+ power fix only", "Final model"], "y": [10.9721, 11.0589, 9.0333, 8.5282], "type": "bar"}
+],
+{
+ "template": {
+  "data": {
+   "barpolar": [
+    {
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "barpolar"
+    }
+   ],
+   "bar": [
+    {
+     "error_x": {
+      "color": "#2a3f5f"
+     },
+     "error_y": {
+      "color": "#2a3f5f"
+     },
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "bar"
+    }
+   ],
+   "carpet": [
+    {
+     "aaxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "baxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "type": "carpet"
+    }
+   ],
+   "choropleth": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "choropleth"
+    }
+   ],
+   "contourcarpet": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "contourcarpet"
+    }
+   ],
+   "contour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "contour"
+    }
+   ],
+   "heatmap": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "heatmap"
+    }
+   ],
+   "histogram2dcontour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2dcontour"
+    }
+   ],
+   "histogram2d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2d"
+    }
+   ],
+   "histogram": [
+    {
+     "marker": {
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "histogram"
+    }
+   ],
+   "mesh3d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "mesh3d"
+    }
+   ],
+   "parcoords": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "parcoords"
+    }
+   ],
+   "pie": [
+    {
+     "automargin": true,
+     "type": "pie"
+    }
+   ],
+   "scatter3d": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatter3d"
+    }
+   ],
+   "scattercarpet": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattercarpet"
+    }
+   ],
+   "scattergeo": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergeo"
+    }
+   ],
+   "scattergl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergl"
+    }
+   ],
+   "scattermap": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattermap"
+    }
+   ],
+   "scatterpolargl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolargl"
+    }
+   ],
+   "scatterpolar": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolar"
+    }
+   ],
+   "scatter": [
+    {
+     "fillpattern": {
+      "fillmode": "overlay",
+      "size": 10,
+      "solidity": 0.2
+     },
+     "type": "scatter"
+    }
+   ],
+   "scatterternary": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterternary"
+    }
+   ],
+   "surface": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "surface"
+    }
+   ],
+   "table": [
+    {
+     "cells": {
+      "fill": {
+       "color": "#EBF0F8"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "header": {
+      "fill": {
+       "color": "#C8D4E3"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "type": "table"
+    }
+   ]
+  },
+  "layout": {
+   "annotationdefaults": {
+    "arrowcolor": "#2a3f5f",
+    "arrowhead": 0,
+    "arrowwidth": 1
+   },
+   "autotypenumbers": "strict",
+   "coloraxis": {
+    "colorbar": {
+     "outlinewidth": 0,
+     "ticks": ""
+    }
+   },
+   "colorscale": {
+    "diverging": [
+     [
+      0,
+      "#8e0152"
+     ],
+     [
+      0.1,
+      "#c51b7d"
+     ],
+     [
+      0.2,
+      "#de77ae"
+     ],
+     [
+      0.3,
+      "#f1b6da"
+     ],
+     [
+      0.4,
+      "#fde0ef"
+     ],
+     [
+      0.5,
+      "#f7f7f7"
+     ],
+     [
+      0.6,
+      "#e6f5d0"
+     ],
+     [
+      0.7,
+      "#b8e186"
+     ],
+     [
+      0.8,
+      "#7fbc41"
+     ],
+     [
+      0.9,
+      "#4d9221"
+     ],
+     [
+      1,
+      "#276419"
+     ]
+    ],
+    "sequential": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ],
+    "sequentialminus": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ]
+   },
+   "colorway": [
+    "#636efa",
+    "#EF553B",
+    "#00cc96",
+    "#ab63fa",
+    "#FFA15A",
+    "#19d3f3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52"
+   ],
+   "font": {
+    "color": "#2a3f5f"
+   },
+   "geo": {
+    "bgcolor": "white",
+    "lakecolor": "white",
+    "landcolor": "white",
+    "showlakes": true,
+    "showland": true,
+    "subunitcolor": "#C8D4E3"
+   },
+   "hoverlabel": {
+    "align": "left"
+   },
+   "hovermode": "closest",
+   "paper_bgcolor": "white",
+   "plot_bgcolor": "white",
+   "polar": {
+    "angularaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "radialaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    }
+   },
+   "scene": {
+    "xaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "yaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "zaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    }
+   },
+   "shapedefaults": {
+    "line": {
+     "color": "#2a3f5f"
+    }
+   },
+   "ternary": {
+    "aaxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "baxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "caxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    }
+   },
+   "title": {
+    "x": 0.05
+   },
+   "xaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   },
+   "yaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   }
+  }
+ },
+ "barmode": "group",
+ "shapes": [
+  {
+   "line": {
+    "color": "#1f2933",
+    "width": 1
+   },
+   "type": "line",
+   "x0": 0,
+   "x1": 1,
+   "xref": "x domain",
+   "y0": 0,
+   "y1": 0,
+   "yref": "y"
+  }
+ ],
+ "yaxis": {
+  "title": {
+   "text": "Park energy error over 28 outages (%)"
+  },
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "title": {
+  "text": "<b>The park error fell because the bias went away (-8.5 → +1.4 %); the noise stayed (±11 → ±11 %)</b><br><span style='font-size:13px;color:#6b7785'>Park energy deviation per simulated outage, split into bias and noise; only the power fix moves the bias</span>",
+  "x": 0.0,
+  "xanchor": "left",
+  "y": 0.95
+ },
+ "font": {
+  "family": "Segoe UI, Helvetica, Arial, sans-serif",
+  "size": 13,
+  "color": "#1f2933"
+ },
+ "margin": {
+  "l": 70,
+  "r": 30,
+  "t": 100,
+  "b": 60
+ },
+ "legend": {
+  "orientation": "h",
+  "y": -0.15
+ },
+ "height": 460,
+ "paper_bgcolor": "white",
+ "plot_bgcolor": "white",
+ "xaxis": {
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ }
+},
+{"responsive": true});
+</script>
+<h3>What the pattern means, and how to weight the metrics</h3>
+<ul class="notes">
+  <li><b>Four of the five metrics measure the same thing.</b> Across all 42 experiments, the rank correlation of wind RMSE with wind MAE is 0.97, with power MAE 0.94 and with power RMSE 0.81. A better wind reconstruction moves all four; the gains are small (4–7 %) and, except for power MAE, steady across outages.</li>
+  <li><b>The park energy deviation is the odd one out: the largest gain and the noisiest.</b> Per outage it spreads by ±11 % (std) around a bias of +1.4 %, and it is unrelated to how well the wind was tracked in that outage (r = -0.17). On a single 3-day hidden window luck dominates; what we control is the bias.</li>
+  <li><b>In the park total, turbine errors cancel.</b> On 4–9 Sep the baseline park total was +0.1 % while T1 was +18.6 %. Wind direction cuts the per-turbine energy error (13.8 → 11.8 %) but hardly the park total (11.0 → 10.9 %): it fixes how energy is split between turbines, which the park sum forgives. It still pays off on the four tracking metrics.</li>
+  <li><b>Power MAE pulls slightly against E[P(v)].</b> MAE rewards the median, E[P(v)] targets the mean: adding it moves power MAE 449 → 457 kW, while power RMSE (695 → 682 kW) and park energy (11.1 → 8.5 %) improve. One metric slightly worse, two clearly better.</li>
+  <li><b>How we weight them:</b> (1) an unbiased park energy sum first: the judges score the park total, it is the insurance number, and its bias is the only part of its error we can reduce; (2) the four tracking metrics as one group, where direction and smoothing pay off; (3) never tune on a single window (4–9 Sep or the hidden one), always on the 28-outage backtest.</li>
+</ul>
+<h2>2. The three changes that make the final model</h2>
+<p class="sub">Final model E12_dir8_smooth60_power: T = a + b·H + c·O on 60-min averaged neighbours, with an offset and H factor per wind direction sector, and power averaged over the uncertainty. Each change was first tested alone against the baseline.</p>
+<div class="card">
+<h3>1. Power averaged over the uncertainty, E[P(v)]</h3>
+<p><span class="tag">Why we expected a gain</span> The power curve is convex at 3–8 m/s, where most energy is made: a single best-guess wind speed gives less power than the average over the plausible speeds (Jensen's inequality). The spread grows with wind speed, so it is estimated per wind-speed bin.</p>
+<p><span class="tag">Result</span> The main lever for the judged park total: alone it cuts the park energy error 11.0 → 9.0 %, on top of direction + smoothing 11.1 → 8.5 %. Energy bias per turbine -8.6 / -5.4 / -7.2 % → +2.3 / +1.5 / +2.2 %.</p>
+</div>
+<div class="fig" id="fig4"></div>
+<script>
+Plotly.newPlot("fig4", [
+{"hovertemplate": "predicted %{x:.1f} m/s<br>%{y:,.0f} kW<extra>Plain curve P(v̂)</extra>", "line": {"color": "#8896a5", "dash": "dash", "width": 2}, "mode": "lines", "name": "Plain curve P(v̂)", "x": [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5], "y": [0.0, 10.746, 138.3165, 417.391, 809.9398, 1338.5109, 2057.2981, 2955.5712, 3793.3309, 4325.0253, 4490.1198, 4500.0], "type": "scatter"},
+{"hovertemplate": "predicted %{x:.1f} m/s<br>%{y:,.0f} kW<extra>Averaged over uncertainty E[P(v)]</extra>", "line": {"color": "#0b7a75", "width": 2.5}, "mode": "lines", "name": "Averaged over uncertainty E[P(v)]", "x": [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5], "y": [11.8062, 59.8574, 203.4297, 497.4164, 906.6284, 1468.7075, 2172.1417, 2891.0778, 3530.7352, 4046.4728, 4328.4963, 4440.9619], "type": "scatter"},
+{"customdata": [571, 2584, 4755, 6592, 7840, 6749, 3885, 1855, 713, 204, 92, 47], "hovertemplate": "predicted %{x:.1f} m/s<br>actual %{y:,.0f} kW<br>%{customdata} steps<extra></extra>", "marker": {"color": "#1f2933", "size": 9}, "mode": "markers", "name": "Actual (mean)", "x": [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5], "y": [12.4039, 57.059, 203.5403, 506.8844, 900.1794, 1508.5761, 2190.8885, 2739.5997, 3340.2639, 3869.5176, 4227.1181, 4454.5669], "type": "scatter"}
+],
+{
+ "template": {
+  "data": {
+   "barpolar": [
+    {
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "barpolar"
+    }
+   ],
+   "bar": [
+    {
+     "error_x": {
+      "color": "#2a3f5f"
+     },
+     "error_y": {
+      "color": "#2a3f5f"
+     },
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "bar"
+    }
+   ],
+   "carpet": [
+    {
+     "aaxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "baxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "type": "carpet"
+    }
+   ],
+   "choropleth": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "choropleth"
+    }
+   ],
+   "contourcarpet": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "contourcarpet"
+    }
+   ],
+   "contour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "contour"
+    }
+   ],
+   "heatmap": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "heatmap"
+    }
+   ],
+   "histogram2dcontour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2dcontour"
+    }
+   ],
+   "histogram2d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2d"
+    }
+   ],
+   "histogram": [
+    {
+     "marker": {
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "histogram"
+    }
+   ],
+   "mesh3d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "mesh3d"
+    }
+   ],
+   "parcoords": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "parcoords"
+    }
+   ],
+   "pie": [
+    {
+     "automargin": true,
+     "type": "pie"
+    }
+   ],
+   "scatter3d": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatter3d"
+    }
+   ],
+   "scattercarpet": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattercarpet"
+    }
+   ],
+   "scattergeo": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergeo"
+    }
+   ],
+   "scattergl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergl"
+    }
+   ],
+   "scattermap": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattermap"
+    }
+   ],
+   "scatterpolargl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolargl"
+    }
+   ],
+   "scatterpolar": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolar"
+    }
+   ],
+   "scatter": [
+    {
+     "fillpattern": {
+      "fillmode": "overlay",
+      "size": 10,
+      "solidity": 0.2
+     },
+     "type": "scatter"
+    }
+   ],
+   "scatterternary": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterternary"
+    }
+   ],
+   "surface": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "surface"
+    }
+   ],
+   "table": [
+    {
+     "cells": {
+      "fill": {
+       "color": "#EBF0F8"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "header": {
+      "fill": {
+       "color": "#C8D4E3"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "type": "table"
+    }
+   ]
+  },
+  "layout": {
+   "annotationdefaults": {
+    "arrowcolor": "#2a3f5f",
+    "arrowhead": 0,
+    "arrowwidth": 1
+   },
+   "autotypenumbers": "strict",
+   "coloraxis": {
+    "colorbar": {
+     "outlinewidth": 0,
+     "ticks": ""
+    }
+   },
+   "colorscale": {
+    "diverging": [
+     [
+      0,
+      "#8e0152"
+     ],
+     [
+      0.1,
+      "#c51b7d"
+     ],
+     [
+      0.2,
+      "#de77ae"
+     ],
+     [
+      0.3,
+      "#f1b6da"
+     ],
+     [
+      0.4,
+      "#fde0ef"
+     ],
+     [
+      0.5,
+      "#f7f7f7"
+     ],
+     [
+      0.6,
+      "#e6f5d0"
+     ],
+     [
+      0.7,
+      "#b8e186"
+     ],
+     [
+      0.8,
+      "#7fbc41"
+     ],
+     [
+      0.9,
+      "#4d9221"
+     ],
+     [
+      1,
+      "#276419"
+     ]
+    ],
+    "sequential": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ],
+    "sequentialminus": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ]
+   },
+   "colorway": [
+    "#636efa",
+    "#EF553B",
+    "#00cc96",
+    "#ab63fa",
+    "#FFA15A",
+    "#19d3f3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52"
+   ],
+   "font": {
+    "color": "#2a3f5f"
+   },
+   "geo": {
+    "bgcolor": "white",
+    "lakecolor": "white",
+    "landcolor": "white",
+    "showlakes": true,
+    "showland": true,
+    "subunitcolor": "#C8D4E3"
+   },
+   "hoverlabel": {
+    "align": "left"
+   },
+   "hovermode": "closest",
+   "paper_bgcolor": "white",
+   "plot_bgcolor": "white",
+   "polar": {
+    "angularaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "radialaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    }
+   },
+   "scene": {
+    "xaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "yaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "zaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    }
+   },
+   "shapedefaults": {
+    "line": {
+     "color": "#2a3f5f"
+    }
+   },
+   "ternary": {
+    "aaxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "baxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "caxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    }
+   },
+   "title": {
+    "x": 0.05
+   },
+   "xaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   },
+   "yaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   }
+  }
+ },
+ "xaxis": {
+  "title": {
+   "text": "Predicted wind speed (1 m/s bins)"
+  },
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "yaxis": {
+  "title": {
+   "text": "Mean power per 10 min (kW)"
+  },
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "title": {
+  "text": "<b>Where most energy is made, the plain curve gives too little power; averaging over the uncertainty is much closer (6–7 m/s: 1,339 vs 1,469 kW, actual 1,509 kW)</b><br><span style='font-size:13px;color:#6b7785'>Backtest steps grouped by predicted wind speed: mean actual power vs the two ways of converting the prediction</span>",
+  "x": 0.0,
+  "xanchor": "left",
+  "y": 0.95
+ },
+ "font": {
+  "family": "Segoe UI, Helvetica, Arial, sans-serif",
+  "size": 13,
+  "color": "#1f2933"
+ },
+ "margin": {
+  "l": 70,
+  "r": 30,
+  "t": 100,
+  "b": 60
+ },
+ "legend": {
+  "orientation": "h",
+  "y": -0.15
+ },
+ "height": 460,
+ "paper_bgcolor": "white",
+ "plot_bgcolor": "white"
+},
+{"responsive": true});
+</script>
+<div class="card">
+<h3>2. Wind direction (8 sectors)</h3>
+<p><span class="tag">Why we expected a gain</span> Hills and wakes shelter park T differently depending on where the wind comes from, so one fixed T/H ratio is wrong for some directions.</p>
+<p><span class="tag">Result</span> Alone: wind RMSE 1.261 → 1.232 m/s, power RMSE 737 → 715 kW, per-turbine energy error 13.8 → 11.8 %. The park total barely moves (11.0 → 10.9 %), because it mostly corrects how energy is split between turbines. Explained as: one offset and one H factor per compass sector.</p>
+</div>
+<div class="fig" id="fig5"></div>
+<script>
+Plotly.newPlot("fig5", [
+{"customdata": [5.6497, 4.8725, 7.6319, 8.6011, 4.7677, 22.3105, 29.8463, 16.3203], "hovertemplate": "wind from %{x}<br>T / H = %{y:.3f}<br>%{customdata:.0f} % of the time<extra></extra>", "marker": {"color": "#0b7a75"}, "text": ["0.85", "0.84", "0.92", "0.91", "0.88", "0.93", "0.89", "0.90"], "textposition": "outside", "width": 0.6, "x": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"], "y": [0.8459, 0.8385, 0.9241, 0.906, 0.8835, 0.9274, 0.8888, 0.9021], "type": "bar"}
+],
+{
+ "template": {
+  "data": {
+   "barpolar": [
+    {
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "barpolar"
+    }
+   ],
+   "bar": [
+    {
+     "error_x": {
+      "color": "#2a3f5f"
+     },
+     "error_y": {
+      "color": "#2a3f5f"
+     },
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "bar"
+    }
+   ],
+   "carpet": [
+    {
+     "aaxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "baxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "type": "carpet"
+    }
+   ],
+   "choropleth": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "choropleth"
+    }
+   ],
+   "contourcarpet": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "contourcarpet"
+    }
+   ],
+   "contour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "contour"
+    }
+   ],
+   "heatmap": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "heatmap"
+    }
+   ],
+   "histogram2dcontour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2dcontour"
+    }
+   ],
+   "histogram2d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2d"
+    }
+   ],
+   "histogram": [
+    {
+     "marker": {
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "histogram"
+    }
+   ],
+   "mesh3d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "mesh3d"
+    }
+   ],
+   "parcoords": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "parcoords"
+    }
+   ],
+   "pie": [
+    {
+     "automargin": true,
+     "type": "pie"
+    }
+   ],
+   "scatter3d": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatter3d"
+    }
+   ],
+   "scattercarpet": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattercarpet"
+    }
+   ],
+   "scattergeo": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergeo"
+    }
+   ],
+   "scattergl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergl"
+    }
+   ],
+   "scattermap": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattermap"
+    }
+   ],
+   "scatterpolargl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolargl"
+    }
+   ],
+   "scatterpolar": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolar"
+    }
+   ],
+   "scatter": [
+    {
+     "fillpattern": {
+      "fillmode": "overlay",
+      "size": 10,
+      "solidity": 0.2
+     },
+     "type": "scatter"
+    }
+   ],
+   "scatterternary": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterternary"
+    }
+   ],
+   "surface": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "surface"
+    }
+   ],
+   "table": [
+    {
+     "cells": {
+      "fill": {
+       "color": "#EBF0F8"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "header": {
+      "fill": {
+       "color": "#C8D4E3"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "type": "table"
+    }
+   ]
+  },
+  "layout": {
+   "annotationdefaults": {
+    "arrowcolor": "#2a3f5f",
+    "arrowhead": 0,
+    "arrowwidth": 1
+   },
+   "autotypenumbers": "strict",
+   "coloraxis": {
+    "colorbar": {
+     "outlinewidth": 0,
+     "ticks": ""
+    }
+   },
+   "colorscale": {
+    "diverging": [
+     [
+      0,
+      "#8e0152"
+     ],
+     [
+      0.1,
+      "#c51b7d"
+     ],
+     [
+      0.2,
+      "#de77ae"
+     ],
+     [
+      0.3,
+      "#f1b6da"
+     ],
+     [
+      0.4,
+      "#fde0ef"
+     ],
+     [
+      0.5,
+      "#f7f7f7"
+     ],
+     [
+      0.6,
+      "#e6f5d0"
+     ],
+     [
+      0.7,
+      "#b8e186"
+     ],
+     [
+      0.8,
+      "#7fbc41"
+     ],
+     [
+      0.9,
+      "#4d9221"
+     ],
+     [
+      1,
+      "#276419"
+     ]
+    ],
+    "sequential": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ],
+    "sequentialminus": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ]
+   },
+   "colorway": [
+    "#636efa",
+    "#EF553B",
+    "#00cc96",
+    "#ab63fa",
+    "#FFA15A",
+    "#19d3f3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52"
+   ],
+   "font": {
+    "color": "#2a3f5f"
+   },
+   "geo": {
+    "bgcolor": "white",
+    "lakecolor": "white",
+    "landcolor": "white",
+    "showlakes": true,
+    "showland": true,
+    "subunitcolor": "#C8D4E3"
+   },
+   "hoverlabel": {
+    "align": "left"
+   },
+   "hovermode": "closest",
+   "paper_bgcolor": "white",
+   "plot_bgcolor": "white",
+   "polar": {
+    "angularaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "radialaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    }
+   },
+   "scene": {
+    "xaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "yaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "zaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    }
+   },
+   "shapedefaults": {
+    "line": {
+     "color": "#2a3f5f"
+    }
+   },
+   "ternary": {
+    "aaxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "baxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "caxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    }
+   },
+   "title": {
+    "x": 0.05
+   },
+   "xaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   },
+   "yaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   }
+  }
+ },
+ "shapes": [
+  {
+   "line": {
+    "color": "#1f2933",
+    "dash": "dot",
+    "width": 1
+   },
+   "type": "line",
+   "x0": 0,
+   "x1": 1,
+   "xref": "x domain",
+   "y0": 0.8996,
+   "y1": 0.8996,
+   "yref": "y"
+  }
+ ],
+ "annotations": [
+  {
+   "showarrow": false,
+   "text": "all directions",
+   "x": 0,
+   "xanchor": "left",
+   "xref": "x domain",
+   "y": 0.8996,
+   "yanchor": "bottom",
+   "yref": "y"
+  }
+ ],
+ "yaxis": {
+  "title": {
+   "text": "Park T wind / park H wind"
+  },
+  "range": [
+   0.75,
+   1.0
+  ],
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "xaxis": {
+  "title": {
+   "text": "Wind direction at park H (8 sectors)"
+  },
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "title": {
+  "text": "<b>Park T gets 84% to 93% of park H's wind, depending on where the wind comes from</b><br><span style='font-size:13px;color:#6b7785'>Ratio of mean wind speed T / H per direction sector (H above 3 m/s); most wind comes from SW and W (22 % and 30 % of the time)</span>",
+  "x": 0.0,
+  "xanchor": "left",
+  "y": 0.95
+ },
+ "font": {
+  "family": "Segoe UI, Helvetica, Arial, sans-serif",
+  "size": 13,
+  "color": "#1f2933"
+ },
+ "margin": {
+  "l": 70,
+  "r": 30,
+  "t": 100,
+  "b": 60
+ },
+ "legend": {
+  "orientation": "h",
+  "y": -0.15
+ },
+ "height": 420,
+ "paper_bgcolor": "white",
+ "plot_bgcolor": "white"
+},
+{"responsive": true});
+</script>
+<div class="card">
+<h3>3. Neighbours averaged over 60 min</h3>
+<p><span class="tag">Why we expected a gain</span> 10-min gusts at H and O are local and not shared with T (correlation rises from 0.80 at 10 min to 0.89 at 3 h), so averaging removes noise from the inputs.</p>
+<p><span class="tag">Result</span> Wind RMSE 1.232 → 1.200 m/s on top of direction, power RMSE 715 → 695 kW. Same accuracy as ±20 min lags, but one coefficient per park instead of five collinear ones, so it stays explainable.</p>
+</div>
+<div class="fig" id="fig6"></div>
+<script>
+Plotly.newPlot("fig6", [
+{"hovertemplate": "%{x} min<br>%{y:+.1f} % vs raw 10-min<extra>Wind speed RMSE</extra>", "line": {"color": "#0b7a75", "width": 2}, "marker": {"size": 9}, "mode": "lines+markers", "name": "Wind speed RMSE", "x": [10, 30, 60, 120], "y": [0.0, -1.6016, -2.4659, -3.5205], "type": "scatter"},
+{"hovertemplate": "%{x} min<br>%{y:+.1f} % vs raw 10-min<extra>Park energy deviation</extra>", "line": {"color": "#d9822b", "width": 2}, "marker": {"size": 9}, "mode": "lines+markers", "name": "Park energy deviation", "x": [10, 30, 60, 120], "y": [0.0, -0.0492, 1.7071, 4.6317], "type": "scatter"}
+],
+{
+ "template": {
+  "data": {
+   "barpolar": [
+    {
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "barpolar"
+    }
+   ],
+   "bar": [
+    {
+     "error_x": {
+      "color": "#2a3f5f"
+     },
+     "error_y": {
+      "color": "#2a3f5f"
+     },
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "bar"
+    }
+   ],
+   "carpet": [
+    {
+     "aaxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "baxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "type": "carpet"
+    }
+   ],
+   "choropleth": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "choropleth"
+    }
+   ],
+   "contourcarpet": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "contourcarpet"
+    }
+   ],
+   "contour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "contour"
+    }
+   ],
+   "heatmap": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "heatmap"
+    }
+   ],
+   "histogram2dcontour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2dcontour"
+    }
+   ],
+   "histogram2d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2d"
+    }
+   ],
+   "histogram": [
+    {
+     "marker": {
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "histogram"
+    }
+   ],
+   "mesh3d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "mesh3d"
+    }
+   ],
+   "parcoords": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "parcoords"
+    }
+   ],
+   "pie": [
+    {
+     "automargin": true,
+     "type": "pie"
+    }
+   ],
+   "scatter3d": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatter3d"
+    }
+   ],
+   "scattercarpet": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattercarpet"
+    }
+   ],
+   "scattergeo": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergeo"
+    }
+   ],
+   "scattergl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergl"
+    }
+   ],
+   "scattermap": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattermap"
+    }
+   ],
+   "scatterpolargl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolargl"
+    }
+   ],
+   "scatterpolar": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolar"
+    }
+   ],
+   "scatter": [
+    {
+     "fillpattern": {
+      "fillmode": "overlay",
+      "size": 10,
+      "solidity": 0.2
+     },
+     "type": "scatter"
+    }
+   ],
+   "scatterternary": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterternary"
+    }
+   ],
+   "surface": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "surface"
+    }
+   ],
+   "table": [
+    {
+     "cells": {
+      "fill": {
+       "color": "#EBF0F8"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "header": {
+      "fill": {
+       "color": "#C8D4E3"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "type": "table"
+    }
+   ]
+  },
+  "layout": {
+   "annotationdefaults": {
+    "arrowcolor": "#2a3f5f",
+    "arrowhead": 0,
+    "arrowwidth": 1
+   },
+   "autotypenumbers": "strict",
+   "coloraxis": {
+    "colorbar": {
+     "outlinewidth": 0,
+     "ticks": ""
+    }
+   },
+   "colorscale": {
+    "diverging": [
+     [
+      0,
+      "#8e0152"
+     ],
+     [
+      0.1,
+      "#c51b7d"
+     ],
+     [
+      0.2,
+      "#de77ae"
+     ],
+     [
+      0.3,
+      "#f1b6da"
+     ],
+     [
+      0.4,
+      "#fde0ef"
+     ],
+     [
+      0.5,
+      "#f7f7f7"
+     ],
+     [
+      0.6,
+      "#e6f5d0"
+     ],
+     [
+      0.7,
+      "#b8e186"
+     ],
+     [
+      0.8,
+      "#7fbc41"
+     ],
+     [
+      0.9,
+      "#4d9221"
+     ],
+     [
+      1,
+      "#276419"
+     ]
+    ],
+    "sequential": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ],
+    "sequentialminus": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ]
+   },
+   "colorway": [
+    "#636efa",
+    "#EF553B",
+    "#00cc96",
+    "#ab63fa",
+    "#FFA15A",
+    "#19d3f3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52"
+   ],
+   "font": {
+    "color": "#2a3f5f"
+   },
+   "geo": {
+    "bgcolor": "white",
+    "lakecolor": "white",
+    "landcolor": "white",
+    "showlakes": true,
+    "showland": true,
+    "subunitcolor": "#C8D4E3"
+   },
+   "hoverlabel": {
+    "align": "left"
+   },
+   "hovermode": "closest",
+   "paper_bgcolor": "white",
+   "plot_bgcolor": "white",
+   "polar": {
+    "angularaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "radialaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    }
+   },
+   "scene": {
+    "xaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "yaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "zaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    }
+   },
+   "shapedefaults": {
+    "line": {
+     "color": "#2a3f5f"
+    }
+   },
+   "ternary": {
+    "aaxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "baxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "caxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    }
+   },
+   "title": {
+    "x": 0.05
+   },
+   "xaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   },
+   "yaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   }
+  }
+ },
+ "shapes": [
+  {
+   "line": {
+    "color": "#1f2933",
+    "dash": "dot",
+    "width": 1
+   },
+   "type": "line",
+   "x0": 0,
+   "x1": 1,
+   "xref": "x domain",
+   "y0": 0,
+   "y1": 0,
+   "yref": "y"
+  }
+ ],
+ "xaxis": {
+  "title": {
+   "text": "Averaging window of the neighbours' wind (min; 10 = raw)"
+  },
+  "type": "log",
+  "tickvals": [
+   10,
+   30,
+   60,
+   120
+  ],
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "yaxis": {
+  "title": {
+   "text": "Change versus raw 10-min input (%)"
+  },
+  "gridcolor": "#e6e9ee",
+  "zeroline": false,
+  "linecolor": "#e6e9ee"
+ },
+ "title": {
+  "text": "<b>Averaging the neighbours lowers wind RMSE (-2.5 % at 60 min) but not the park energy error (+1.7 %)</b><br><span style='font-size:13px;color:#6b7785'>Smoothing alone (no direction, no power fix), backtest change versus the raw 10-min baseline</span>",
+  "x": 0.0,
+  "xanchor": "left",
+  "y": 0.95
+ },
+ "font": {
+  "family": "Segoe UI, Helvetica, Arial, sans-serif",
+  "size": 13,
+  "color": "#1f2933"
+ },
+ "margin": {
+  "l": 70,
+  "r": 30,
+  "t": 100,
+  "b": 60
+ },
+ "legend": {
+  "orientation": "h",
+  "y": -0.15
+ },
+ "height": 420,
+ "paper_bgcolor": "white",
+ "plot_bgcolor": "white"
+},
+{"responsive": true});
+</script>
+<h2>3. What did not work, and what it tells us</h2>
+<ul class="notes">
+  <li><b>Weighting recent days (E01):</b> park energy error 11.0–11.6 % vs 11.0 %. We assumed the T/H relation drifts by month. Likely reason: the monthly shift in the fit reflects different wind regimes, not a changing site relation; fewer data points only add noise.</li>
+  <li><b>Non-linear fits (E05 log, sqrt, piecewise):</b> no gain; log moves the 4–9 Sep park energy to -13.5 %. Insight: wind speed relates linearly between parks; the non-linearity sits in the power curve and is handled there (E[P(v)]).</li>
+  <li><b>Variance-ratio method (E04):</b> removes the bias (-2.0 % for T1) but adds noise to every step (wind RMSE 1.261 → 1.328). Insight: fix the bias in the power conversion, not by inflating the wind.</li>
+  <li><b>Hour of day, turbulence, temperature, pressure (E06):</b> park energy error 11.0–11.6 %, no gain. Insight: they carry no information beyond the neighbours' wind; leaving them out keeps the model simpler, and we can show why.</li>
+  <li><b>Out-of-sample and conformal bands (E07):</b> coverage 94.8 % vs 94.6 % with the training spread. Insight: the training residuals were already honest; estimating the spread per wind-speed bin is what tightens the band.</li>
+  <li><b>Gradient boosting (E08):</b> park energy error 9.7 % vs 8.5 % for the final model, with only 89 % band coverage. Insight: there is no hidden structure a black box finds that the transparent features miss.</li>
+</ul>
+<div class="fig" id="fig7"></div>
+<script>
+Plotly.newPlot("fig7", [
+{"customdata": [[1.2598, 736.7598, "E01_decay30"], [1.2612, 736.7693, "E00_baseline"], [1.2612, 736.7693, "E07_conformal"], [1.241, 725.1705, "E02_smooth30min"], [1.3281, 768.8765, "E04_variance_ratio"], [1.2815, 729.6934, "E05_sqrt"], [1.2454, 724.3975, "E06_dir"], [1.223, 700.2397, "E08_hgb"], [1.2612, 723.9788, "E03_power_empirical"], [1.1995, 682.3263, "E12_dir8_smooth60_power"]], "hovertemplate": "%{customdata[2]}<br>park |energy dev| %{x:.2f} %<br>wind RMSE %{customdata[0]:.3f} m/s<br>power RMSE %{customdata[1]:.0f} kW<extra></extra>", "marker": {"color": ["#c9ced6", "#8896a5", "#c9ced6", "#c9ced6", "#c9ced6", "#c9ced6", "#c9ced6", "#c9ced6", "#c9ced6", "#0b7a75"]}, "orientation": "h", "text": ["11.0 %", "11.0 %", "11.0 %", "11.0 %", "10.7 %", "10.7 %", "10.4 %", "9.7 %", "9.3 %", "8.5 %"], "textposition": "outside", "width": 0.55, "x": [10.9967, 10.9721, 10.9721, 10.9667, 10.7356, 10.6903, 10.4354, 9.7123, 9.3436, 8.5282], "y": ["E01: time weights, half-life 30 d", "E00: OLS T = a + b*H + c*O, static per turbine", "E07: conformal band (empirical quantiles, OOS)", "E02: references smoothed over 30 min", "E04: variance-ratio MCP instead of OLS", "E05: fit on sqrt(H), sqrt(O)", "E06: + wind direction sin/cos", "E08: gradient boosting, refs + hour + direction + stddev", "E03: E[P(v)], empirical residuals", "E12: dir octant on 60-min smoothed refs, sigma per bin, E[P(v)]"], "type": "bar"}
+],
+{
+ "template": {
+  "data": {
+   "barpolar": [
+    {
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "barpolar"
+    }
+   ],
+   "bar": [
+    {
+     "error_x": {
+      "color": "#2a3f5f"
+     },
+     "error_y": {
+      "color": "#2a3f5f"
+     },
+     "marker": {
+      "line": {
+       "color": "white",
+       "width": 0.5
+      },
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "bar"
+    }
+   ],
+   "carpet": [
+    {
+     "aaxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "baxis": {
+      "endlinecolor": "#2a3f5f",
+      "gridcolor": "#C8D4E3",
+      "linecolor": "#C8D4E3",
+      "minorgridcolor": "#C8D4E3",
+      "startlinecolor": "#2a3f5f"
+     },
+     "type": "carpet"
+    }
+   ],
+   "choropleth": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "choropleth"
+    }
+   ],
+   "contourcarpet": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "contourcarpet"
+    }
+   ],
+   "contour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "contour"
+    }
+   ],
+   "heatmap": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "heatmap"
+    }
+   ],
+   "histogram2dcontour": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2dcontour"
+    }
+   ],
+   "histogram2d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "histogram2d"
+    }
+   ],
+   "histogram": [
+    {
+     "marker": {
+      "pattern": {
+       "fillmode": "overlay",
+       "size": 10,
+       "solidity": 0.2
+      }
+     },
+     "type": "histogram"
+    }
+   ],
+   "mesh3d": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "type": "mesh3d"
+    }
+   ],
+   "parcoords": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "parcoords"
+    }
+   ],
+   "pie": [
+    {
+     "automargin": true,
+     "type": "pie"
+    }
+   ],
+   "scatter3d": [
+    {
+     "line": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatter3d"
+    }
+   ],
+   "scattercarpet": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattercarpet"
+    }
+   ],
+   "scattergeo": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergeo"
+    }
+   ],
+   "scattergl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattergl"
+    }
+   ],
+   "scattermap": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scattermap"
+    }
+   ],
+   "scatterpolargl": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolargl"
+    }
+   ],
+   "scatterpolar": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterpolar"
+    }
+   ],
+   "scatter": [
+    {
+     "fillpattern": {
+      "fillmode": "overlay",
+      "size": 10,
+      "solidity": 0.2
+     },
+     "type": "scatter"
+    }
+   ],
+   "scatterternary": [
+    {
+     "marker": {
+      "colorbar": {
+       "outlinewidth": 0,
+       "ticks": ""
+      }
+     },
+     "type": "scatterternary"
+    }
+   ],
+   "surface": [
+    {
+     "colorbar": {
+      "outlinewidth": 0,
+      "ticks": ""
+     },
+     "colorscale": [
+      [
+       0.0,
+       "#0d0887"
+      ],
+      [
+       0.1111,
+       "#46039f"
+      ],
+      [
+       0.2222,
+       "#7201a8"
+      ],
+      [
+       0.3333,
+       "#9c179e"
+      ],
+      [
+       0.4444,
+       "#bd3786"
+      ],
+      [
+       0.5556,
+       "#d8576b"
+      ],
+      [
+       0.6667,
+       "#ed7953"
+      ],
+      [
+       0.7778,
+       "#fb9f3a"
+      ],
+      [
+       0.8889,
+       "#fdca26"
+      ],
+      [
+       1.0,
+       "#f0f921"
+      ]
+     ],
+     "type": "surface"
+    }
+   ],
+   "table": [
+    {
+     "cells": {
+      "fill": {
+       "color": "#EBF0F8"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "header": {
+      "fill": {
+       "color": "#C8D4E3"
+      },
+      "line": {
+       "color": "white"
+      }
+     },
+     "type": "table"
+    }
+   ]
+  },
+  "layout": {
+   "annotationdefaults": {
+    "arrowcolor": "#2a3f5f",
+    "arrowhead": 0,
+    "arrowwidth": 1
+   },
+   "autotypenumbers": "strict",
+   "coloraxis": {
+    "colorbar": {
+     "outlinewidth": 0,
+     "ticks": ""
+    }
+   },
+   "colorscale": {
+    "diverging": [
+     [
+      0,
+      "#8e0152"
+     ],
+     [
+      0.1,
+      "#c51b7d"
+     ],
+     [
+      0.2,
+      "#de77ae"
+     ],
+     [
+      0.3,
+      "#f1b6da"
+     ],
+     [
+      0.4,
+      "#fde0ef"
+     ],
+     [
+      0.5,
+      "#f7f7f7"
+     ],
+     [
+      0.6,
+      "#e6f5d0"
+     ],
+     [
+      0.7,
+      "#b8e186"
+     ],
+     [
+      0.8,
+      "#7fbc41"
+     ],
+     [
+      0.9,
+      "#4d9221"
+     ],
+     [
+      1,
+      "#276419"
+     ]
+    ],
+    "sequential": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ],
+    "sequentialminus": [
+     [
+      0.0,
+      "#0d0887"
+     ],
+     [
+      0.1111,
+      "#46039f"
+     ],
+     [
+      0.2222,
+      "#7201a8"
+     ],
+     [
+      0.3333,
+      "#9c179e"
+     ],
+     [
+      0.4444,
+      "#bd3786"
+     ],
+     [
+      0.5556,
+      "#d8576b"
+     ],
+     [
+      0.6667,
+      "#ed7953"
+     ],
+     [
+      0.7778,
+      "#fb9f3a"
+     ],
+     [
+      0.8889,
+      "#fdca26"
+     ],
+     [
+      1.0,
+      "#f0f921"
+     ]
+    ]
+   },
+   "colorway": [
+    "#636efa",
+    "#EF553B",
+    "#00cc96",
+    "#ab63fa",
+    "#FFA15A",
+    "#19d3f3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52"
+   ],
+   "font": {
+    "color": "#2a3f5f"
+   },
+   "geo": {
+    "bgcolor": "white",
+    "lakecolor": "white",
+    "landcolor": "white",
+    "showlakes": true,
+    "showland": true,
+    "subunitcolor": "#C8D4E3"
+   },
+   "hoverlabel": {
+    "align": "left"
+   },
+   "hovermode": "closest",
+   "paper_bgcolor": "white",
+   "plot_bgcolor": "white",
+   "polar": {
+    "angularaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "radialaxis": {
+     "gridcolor": "#EBF0F8",
+     "linecolor": "#EBF0F8",
+     "ticks": ""
+    }
+   },
+   "scene": {
+    "xaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "yaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    },
+    "zaxis": {
+     "backgroundcolor": "white",
+     "gridcolor": "#DFE8F3",
+     "gridwidth": 2,
+     "linecolor": "#EBF0F8",
+     "showbackground": true,
+     "ticks": "",
+     "zerolinecolor": "#EBF0F8"
+    }
+   },
+   "shapedefaults": {
+    "line": {
+     "color": "#2a3f5f"
+    }
+   },
+   "ternary": {
+    "aaxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "baxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    },
+    "bgcolor": "white",
+    "caxis": {
+     "gridcolor": "#DFE8F3",
+     "linecolor": "#A2B1C6",
+     "ticks": ""
+    }
+   },
+   "title": {
+    "x": 0.05
+   },
+   "xaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   },
+   "yaxis": {
+    "automargin": true,
+    "gridcolor": "#EBF0F8",
+    "linecolor": "#EBF0F8",
+    "ticks": "",
+    "title": {
+     "standoff": 15
+    },
+    "zerolinecolor": "#EBF0F8",
+    "zerolinewidth": 2
+   }
+  }
+ },
+ "shapes": [
+  {
+   "line": {
+    "color": "#1f2933",
+    "dash": "dot",
+    "width": 1
+   },
+   "type": "line",
+   "x0": 10.9721,
+   "x1": 10.9721,
    "xref": "x",
    "y0": 0,
    "y1": 1,
@@ -810,7 +5838,7 @@ Plotly.newPlot("fig1", [
   {
    "showarrow": false,
    "text": "baseline",
-   "x": 13.7781,
+   "x": 10.9721,
    "xanchor": "center",
    "xref": "x",
    "y": 1,
@@ -820,11 +5848,11 @@ Plotly.newPlot("fig1", [
  ],
  "xaxis": {
   "title": {
-   "text": "Mean |energy deviation| per turbine and outage (%), lower is better"
+   "text": "Mean |park energy deviation| per outage (%), lower is better"
   },
   "range": [
    0,
-   16.5337
+   13.1665
   ],
   "gridcolor": "#e6e9ee",
   "zeroline": false,
@@ -837,7 +5865,7 @@ Plotly.newPlot("fig1", [
   "linecolor": "#e6e9ee"
  },
  "title": {
-  "text": "<b>Combining wind direction, smoothed neighbours and a power fix cuts the energy error from 13.8 % to 10.0 %</b><br><span style='font-size:13px;color:#6b7785'>Best variant per round-1 idea (E01–E08) versus baseline E00 and final model, 28 simulated outages</span>",
+  "text": "<b>Park energy error 11.0 % → 8.5 %; the best single change is E[P(v)], empirical residuals (9.3 %)</b><br><span style='font-size:13px;color:#6b7785'>Best variant per round-1 idea (E01–E08) versus baseline E00 and final model, 28 simulated outages</span>",
   "x": 0.0,
   "xanchor": "left",
   "y": 0.95
@@ -863,9 +5891,10 @@ Plotly.newPlot("fig1", [
 },
 {"responsive": true});
 </script>
-<div class="fig" id="fig2"></div>
+<h2>4. Robustness checks</h2>
+<div class="fig" id="fig8"></div>
 <script>
-Plotly.newPlot("fig2", [
+Plotly.newPlot("fig8", [
 {"hovertemplate": "E00_baseline<br>%{x}: %{y:.1f} %<extra></extra>", "marker": {"color": "#8896a5"}, "name": "E00: OLS T = a + b*H + c*O, static per turbine", "x": ["T1", "T2", "T3"], "y": [-8.5932, -5.3819, -7.2312], "type": "bar"},
 {"hovertemplate": "E03_power_gauss<br>%{x}: %{y:.1f} %<extra></extra>", "marker": {"color": "#d9822b"}, "name": "E03: E[P(v)], Gaussian residuals", "x": ["T1", "T2", "T3"], "y": [6.9883, 4.369, 4.7817], "type": "bar"},
 {"hovertemplate": "E09_power_gauss_bins<br>%{x}: %{y:.1f} %<extra></extra>", "marker": {"color": "#e9b872"}, "name": "E09: E[P(v)] with sigma per wind-speed bin", "x": ["T1", "T2", "T3"], "y": [4.5891, 3.0444, 3.3834], "type": "bar"},
@@ -1691,9 +6720,9 @@ Plotly.newPlot("fig2", [
 },
 {"responsive": true});
 </script>
-<div class="fig" id="fig3"></div>
+<div class="fig" id="fig9"></div>
 <script>
-Plotly.newPlot("fig3", [
+Plotly.newPlot("fig9", [
 {"boxpoints": "all", "fillcolor": "rgba(0,0,0,0)", "hovertemplate": "%{text}<br>%{y:.1f} %<extra>Baseline</extra>", "jitter": 0.4, "line": {"color": "#8896a5", "width": 1.5}, "marker": {"color": "#8896a5", "opacity": 0.8, "size": 6}, "name": "Baseline", "pointpos": 0, "text": ["bt_0703", "bt_0706", "bt_0709", "bt_0712", "bt_0715", "bt_0718", "bt_0721", "bt_0724", "bt_0727", "bt_0730", "bt_0805", "bt_0808", "bt_0811", "bt_0814", "bt_0817", "bt_0820", "bt_0823", "bt_0826", "bt_0829", "bt_0904", "bt_0907", "bt_0910", "bt_0913", "bt_0916", "bt_0919", "bt_0922", "bt_0925", "bt_0928"], "y": [-10.5211, 3.6517, -24.3586, -10.8282, -21.2225, -11.6117, 2.0637, -12.409, -2.8214, 3.4895, 2.5284, -18.1961, -23.4669, -16.28, 0.8016, -9.0118, -17.4915, 0.7977, -12.5531, 2.9761, -5.2021, 18.571, -7.7744, -10.505, -9.6718, -3.2848, -30.6684, -14.4615], "type": "box"},
 {"boxpoints": "all", "fillcolor": "rgba(0,0,0,0)", "hovertemplate": "%{text}<br>%{y:.1f} %<extra>Final model</extra>", "jitter": 0.4, "line": {"color": "#0b7a75", "width": 1.5}, "marker": {"color": "#0b7a75", "opacity": 0.8, "size": 6}, "name": "Final model", "pointpos": 0, "text": ["bt_0703", "bt_0706", "bt_0709", "bt_0712", "bt_0715", "bt_0718", "bt_0721", "bt_0724", "bt_0727", "bt_0730", "bt_0805", "bt_0808", "bt_0811", "bt_0814", "bt_0817", "bt_0820", "bt_0823", "bt_0826", "bt_0829", "bt_0904", "bt_0907", "bt_0910", "bt_0913", "bt_0916", "bt_0919", "bt_0922", "bt_0925", "bt_0928"], "y": [-8.4999, 6.4523, -13.5243, 0.7271, -10.0564, -7.5138, 8.6782, -1.8913, 4.1268, 15.4357, 10.6181, -4.5658, -8.1285, -4.8392, 10.3468, -2.5335, -5.4897, 31.0982, -7.6641, 3.3256, 0.0955, 30.2032, 4.041, -1.209, -6.9396, 4.679, -16.8657, 9.2425], "type": "box"}
 ],
@@ -2517,9 +7546,9 @@ Plotly.newPlot("fig3", [
 },
 {"responsive": true});
 </script>
-<div class="fig" id="fig4"></div>
+<div class="fig" id="fig10"></div>
 <script>
-Plotly.newPlot("fig4", [
+Plotly.newPlot("fig10", [
 {"customdata": [5.3632, 4.6492, 4.6224], "hovertemplate": "Baseline %{x}<br>coverage %{y:.1f} %<br>mean width %{customdata:.2f} m/s<extra></extra>", "marker": {"color": "#8896a5", "size": 13}, "mode": "markers", "name": "Baseline", "x": ["T1", "T2", "T3"], "y": [94.3737, 94.5968, 94.7368], "type": "scatter"},
 {"customdata": [4.8349, 4.3805, 4.4085], "hovertemplate": "Final model %{x}<br>coverage %{y:.1f} %<br>mean width %{customdata:.2f} m/s<extra></extra>", "marker": {"color": "#0b7a75", "size": 13}, "mode": "markers", "name": "Final model", "x": ["T1", "T2", "T3"], "y": [94.5579, 94.7219, 94.9954], "type": "scatter"}
 ],
@@ -3358,9 +8387,9 @@ Plotly.newPlot("fig4", [
 },
 {"responsive": true});
 </script>
-<div class="fig" id="fig5"></div>
+<div class="fig" id="fig11"></div>
 <script>
-Plotly.newPlot("fig5", [
+Plotly.newPlot("fig11", [
 {"hoverinfo": "skip", "line": {"width": 0}, "showlegend": false, "x": ["2026-09-04 00:00:00", "2026-09-04 00:10:00", "2026-09-04 00:20:00", "2026-09-04 00:30:00", "2026-09-04 00:40:00", "2026-09-04 00:50:00", "2026-09-04 01:00:00", "2026-09-04 01:10:00", "2026-09-04 01:20:00", "2026-09-04 01:30:00", "2026-09-04 01:40:00", "2026-09-04 01:50:00", "2026-09-04 02:00:00", "2026-09-04 02:10:00", "2026-09-04 02:20:00", "2026-09-04 02:30:00", "2026-09-04 02:40:00", "2026-09-04 02:50:00", "2026-09-04 03:00:00", "2026-09-04 03:10:00", "2026-09-04 03:20:00", "2026-09-04 03:30:00", "2026-09-04 03:40:00", "2026-09-04 03:50:00", "2026-09-04 04:00:00", "2026-09-04 04:10:00", "2026-09-04 04:20:00", "2026-09-04 04:30:00", "2026-09-04 04:40:00", "2026-09-04 04:50:00", "2026-09-04 05:00:00", "2026-09-04 05:10:00", "2026-09-04 05:20:00", "2026-09-04 05:30:00", "2026-09-04 05:40:00", "2026-09-04 05:50:00", "2026-09-04 06:00:00", "2026-09-04 06:10:00", "2026-09-04 06:20:00", "2026-09-04 06:30:00", "2026-09-04 06:40:00", "2026-09-04 06:50:00", "2026-09-04 07:00:00", "2026-09-04 07:10:00", "2026-09-04 07:20:00", "2026-09-04 07:30:00", "2026-09-04 07:40:00", "2026-09-04 07:50:00", "2026-09-04 08:00:00", "2026-09-04 08:10:00", "2026-09-04 08:20:00", "2026-09-04 08:30:00", "2026-09-04 08:40:00", "2026-09-04 08:50:00", "2026-09-04 09:00:00", "2026-09-04 09:10:00", "2026-09-04 09:20:00", "2026-09-04 09:30:00", "2026-09-04 09:40:00", "2026-09-04 09:50:00", "2026-09-04 10:00:00", "2026-09-04 10:10:00", "2026-09-04 10:20:00", "2026-09-04 10:30:00", "2026-09-04 10:40:00", "2026-09-04 10:50:00", "2026-09-04 11:00:00", "2026-09-04 11:10:00", "2026-09-04 11:20:00", "2026-09-04 11:30:00", "2026-09-04 11:40:00", "2026-09-04 11:50:00", "2026-09-04 12:00:00", "2026-09-04 12:10:00", "2026-09-04 12:20:00", "2026-09-04 12:30:00", "2026-09-04 12:40:00", "2026-09-04 12:50:00", "2026-09-04 13:00:00", "2026-09-04 13:10:00", "2026-09-04 13:20:00", "2026-09-04 13:30:00", "2026-09-04 13:40:00", "2026-09-04 13:50:00", "2026-09-04 14:00:00", "2026-09-04 14:10:00", "2026-09-04 14:20:00", "2026-09-04 14:30:00", "2026-09-04 14:40:00", "2026-09-04 14:50:00", "2026-09-04 15:00:00", "2026-09-04 15:10:00", "2026-09-04 15:20:00", "2026-09-04 15:30:00", "2026-09-04 15:40:00", "2026-09-04 15:50:00", "2026-09-04 16:00:00", "2026-09-04 16:10:00", "2026-09-04 16:20:00", "2026-09-04 16:30:00", "2026-09-04 16:40:00", "2026-09-04 16:50:00", "2026-09-04 17:00:00", "2026-09-04 17:10:00", "2026-09-04 17:20:00", "2026-09-04 17:30:00", "2026-09-04 17:40:00", "2026-09-04 17:50:00", "2026-09-04 18:00:00", "2026-09-04 18:10:00", "2026-09-04 18:20:00", "2026-09-04 18:30:00", "2026-09-04 18:40:00", "2026-09-04 18:50:00", "2026-09-04 19:00:00", "2026-09-04 19:10:00", "2026-09-04 19:20:00", "2026-09-04 19:30:00", "2026-09-04 19:40:00", "2026-09-04 19:50:00", "2026-09-04 20:00:00", "2026-09-04 20:10:00", "2026-09-04 20:20:00", "2026-09-04 20:30:00", "2026-09-04 20:40:00", "2026-09-04 20:50:00", "2026-09-04 21:00:00", "2026-09-04 21:10:00", "2026-09-04 21:20:00", "2026-09-04 21:30:00", "2026-09-04 21:40:00", "2026-09-04 21:50:00", "2026-09-04 22:00:00", "2026-09-04 22:10:00", "2026-09-04 22:20:00", "2026-09-04 22:30:00", "2026-09-04 22:40:00", "2026-09-04 22:50:00", "2026-09-04 23:00:00", "2026-09-04 23:10:00", "2026-09-04 23:20:00", "2026-09-04 23:30:00", "2026-09-04 23:40:00", "2026-09-04 23:50:00", "2026-09-05 00:00:00", "2026-09-05 00:10:00", "2026-09-05 00:20:00", "2026-09-05 00:30:00", "2026-09-05 00:40:00", "2026-09-05 00:50:00", "2026-09-05 01:00:00", "2026-09-05 01:10:00", "2026-09-05 01:20:00", "2026-09-05 01:30:00", "2026-09-05 01:40:00", "2026-09-05 01:50:00", "2026-09-05 02:00:00", "2026-09-05 02:10:00", "2026-09-05 02:20:00", "2026-09-05 02:30:00", "2026-09-05 02:40:00", "2026-09-05 02:50:00", "2026-09-05 03:00:00", "2026-09-05 03:10:00", "2026-09-05 03:20:00", "2026-09-05 03:30:00", "2026-09-05 03:40:00", "2026-09-05 03:50:00", "2026-09-05 04:00:00", "2026-09-05 04:10:00", "2026-09-05 04:20:00", "2026-09-05 04:30:00", "2026-09-05 04:40:00", "2026-09-05 04:50:00", "2026-09-05 05:00:00", "2026-09-05 05:10:00", "2026-09-05 05:20:00", "2026-09-05 05:30:00", "2026-09-05 05:40:00", "2026-09-05 05:50:00", "2026-09-05 06:00:00", "2026-09-05 06:10:00", "2026-09-05 06:20:00", "2026-09-05 06:30:00", "2026-09-05 06:40:00", "2026-09-05 06:50:00", "2026-09-05 07:00:00", "2026-09-05 07:10:00", "2026-09-05 07:20:00", "2026-09-05 07:30:00", "2026-09-05 07:40:00", "2026-09-05 07:50:00", "2026-09-05 08:00:00", "2026-09-05 08:10:00", "2026-09-05 08:20:00", "2026-09-05 08:30:00", "2026-09-05 08:40:00", "2026-09-05 08:50:00", "2026-09-05 09:00:00", "2026-09-05 09:10:00", "2026-09-05 09:20:00", "2026-09-05 09:30:00", "2026-09-05 09:40:00", "2026-09-05 09:50:00", "2026-09-05 10:00:00", "2026-09-05 10:10:00", "2026-09-05 10:20:00", "2026-09-05 10:30:00", "2026-09-05 10:40:00", "2026-09-05 10:50:00", "2026-09-05 11:00:00", "2026-09-05 11:10:00", "2026-09-05 11:20:00", "2026-09-05 11:30:00", "2026-09-05 11:40:00", "2026-09-05 11:50:00", "2026-09-05 12:00:00", "2026-09-05 12:10:00", "2026-09-05 12:20:00", "2026-09-05 12:30:00", "2026-09-05 12:40:00", "2026-09-05 12:50:00", "2026-09-05 13:00:00", "2026-09-05 13:10:00", "2026-09-05 13:20:00", "2026-09-05 13:30:00", "2026-09-05 13:40:00", "2026-09-05 13:50:00", "2026-09-05 14:00:00", "2026-09-05 14:10:00", "2026-09-05 14:20:00", "2026-09-05 14:30:00", "2026-09-05 14:40:00", "2026-09-05 14:50:00", "2026-09-05 15:00:00", "2026-09-05 15:10:00", "2026-09-05 15:20:00", "2026-09-05 15:30:00", "2026-09-05 15:40:00", "2026-09-05 15:50:00", "2026-09-05 16:00:00", "2026-09-05 16:10:00", "2026-09-05 16:20:00", "2026-09-05 16:30:00", "2026-09-05 16:40:00", "2026-09-05 16:50:00", "2026-09-05 17:00:00", "2026-09-05 17:10:00", "2026-09-05 17:20:00", "2026-09-05 17:30:00", "2026-09-05 17:40:00", "2026-09-05 17:50:00", "2026-09-05 18:00:00", "2026-09-05 18:10:00", "2026-09-05 18:20:00", "2026-09-05 18:30:00", "2026-09-05 18:40:00", "2026-09-05 18:50:00", "2026-09-05 19:00:00", "2026-09-05 19:10:00", "2026-09-05 19:20:00", "2026-09-05 19:30:00", "2026-09-05 19:40:00", "2026-09-05 19:50:00", "2026-09-05 20:00:00", "2026-09-05 20:10:00", "2026-09-05 20:20:00", "2026-09-05 20:30:00", "2026-09-05 20:40:00", "2026-09-05 20:50:00", "2026-09-05 21:00:00", "2026-09-05 21:10:00", "2026-09-05 21:20:00", "2026-09-05 21:30:00", "2026-09-05 21:40:00", "2026-09-05 21:50:00", "2026-09-05 22:00:00", "2026-09-05 22:10:00", "2026-09-05 22:20:00", "2026-09-05 22:30:00", "2026-09-05 22:40:00", "2026-09-05 22:50:00", "2026-09-05 23:00:00", "2026-09-05 23:10:00", "2026-09-05 23:20:00", "2026-09-05 23:30:00", "2026-09-05 23:40:00", "2026-09-05 23:50:00", "2026-09-06 00:00:00", "2026-09-06 00:10:00", "2026-09-06 00:20:00", "2026-09-06 00:30:00", "2026-09-06 00:40:00", "2026-09-06 00:50:00", "2026-09-06 01:00:00", "2026-09-06 01:10:00", "2026-09-06 01:20:00", "2026-09-06 01:30:00", "2026-09-06 01:40:00", "2026-09-06 01:50:00", "2026-09-06 02:00:00", "2026-09-06 02:10:00", "2026-09-06 02:20:00", "2026-09-06 02:30:00", "2026-09-06 02:40:00", "2026-09-06 02:50:00", "2026-09-06 03:00:00", "2026-09-06 03:10:00", "2026-09-06 03:20:00", "2026-09-06 03:30:00", "2026-09-06 03:40:00", "2026-09-06 03:50:00", "2026-09-06 04:00:00", "2026-09-06 04:10:00", "2026-09-06 04:20:00", "2026-09-06 04:30:00", "2026-09-06 04:40:00", "2026-09-06 04:50:00", "2026-09-06 05:00:00", "2026-09-06 05:10:00", "2026-09-06 05:20:00", "2026-09-06 05:30:00", "2026-09-06 05:40:00", "2026-09-06 05:50:00", "2026-09-06 06:00:00", "2026-09-06 06:10:00", "2026-09-06 06:20:00", "2026-09-06 06:30:00", "2026-09-06 06:40:00", "2026-09-06 06:50:00", "2026-09-06 07:00:00", "2026-09-06 07:10:00", "2026-09-06 07:20:00", "2026-09-06 07:30:00", "2026-09-06 07:40:00", "2026-09-06 07:50:00", "2026-09-06 08:00:00", "2026-09-06 08:10:00", "2026-09-06 08:20:00", "2026-09-06 08:30:00", "2026-09-06 08:40:00", "2026-09-06 08:50:00", "2026-09-06 09:00:00", "2026-09-06 09:10:00", "2026-09-06 09:20:00", "2026-09-06 09:30:00", "2026-09-06 09:40:00", "2026-09-06 09:50:00", "2026-09-06 10:00:00", "2026-09-06 10:10:00", "2026-09-06 10:20:00", "2026-09-06 10:30:00", "2026-09-06 10:40:00", "2026-09-06 10:50:00", "2026-09-06 11:00:00", "2026-09-06 11:10:00", "2026-09-06 11:20:00", "2026-09-06 11:30:00", "2026-09-06 11:40:00", "2026-09-06 11:50:00", "2026-09-06 12:00:00", "2026-09-06 12:10:00", "2026-09-06 12:20:00", "2026-09-06 12:30:00", "2026-09-06 12:40:00", "2026-09-06 12:50:00", "2026-09-06 13:00:00", "2026-09-06 13:10:00", "2026-09-06 13:20:00", "2026-09-06 13:30:00", "2026-09-06 13:40:00", "2026-09-06 13:50:00", "2026-09-06 14:00:00", "2026-09-06 14:10:00", "2026-09-06 14:20:00", "2026-09-06 14:30:00", "2026-09-06 14:40:00", "2026-09-06 14:50:00", "2026-09-06 15:00:00", "2026-09-06 15:10:00", "2026-09-06 15:20:00", "2026-09-06 15:30:00", "2026-09-06 15:40:00", "2026-09-06 15:50:00", "2026-09-06 16:00:00", "2026-09-06 16:10:00", "2026-09-06 16:20:00", "2026-09-06 16:30:00", "2026-09-06 16:40:00", "2026-09-06 16:50:00", "2026-09-06 17:00:00", "2026-09-06 17:10:00", "2026-09-06 17:20:00", "2026-09-06 17:30:00", "2026-09-06 17:40:00", "2026-09-06 17:50:00", "2026-09-06 18:00:00", "2026-09-06 18:10:00", "2026-09-06 18:20:00", "2026-09-06 18:30:00", "2026-09-06 18:40:00", "2026-09-06 18:50:00", "2026-09-06 19:00:00", "2026-09-06 19:10:00", "2026-09-06 19:20:00", "2026-09-06 19:30:00", "2026-09-06 19:40:00", "2026-09-06 19:50:00", "2026-09-06 20:00:00", "2026-09-06 20:10:00", "2026-09-06 20:20:00", "2026-09-06 20:30:00", "2026-09-06 20:40:00", "2026-09-06 20:50:00", "2026-09-06 21:00:00", "2026-09-06 21:10:00", "2026-09-06 21:20:00", "2026-09-06 21:30:00", "2026-09-06 21:40:00", "2026-09-06 21:50:00", "2026-09-06 22:00:00", "2026-09-06 22:10:00", "2026-09-06 22:20:00", "2026-09-06 22:30:00", "2026-09-06 22:40:00", "2026-09-06 22:50:00", "2026-09-06 23:00:00", "2026-09-06 23:10:00", "2026-09-06 23:20:00", "2026-09-06 23:30:00", "2026-09-06 23:40:00", "2026-09-06 23:50:00", "2026-09-07 00:00:00", "2026-09-07 00:10:00", "2026-09-07 00:20:00", "2026-09-07 00:30:00", "2026-09-07 00:40:00", "2026-09-07 00:50:00", "2026-09-07 01:00:00", "2026-09-07 01:10:00", "2026-09-07 01:20:00", "2026-09-07 01:30:00", "2026-09-07 01:40:00", "2026-09-07 01:50:00", "2026-09-07 02:00:00", "2026-09-07 02:10:00", "2026-09-07 02:20:00", "2026-09-07 02:30:00", "2026-09-07 02:40:00", "2026-09-07 02:50:00", "2026-09-07 03:00:00", "2026-09-07 03:10:00", "2026-09-07 03:20:00", "2026-09-07 03:30:00", "2026-09-07 03:40:00", "2026-09-07 03:50:00", "2026-09-07 04:00:00", "2026-09-07 04:10:00", "2026-09-07 04:20:00", "2026-09-07 04:30:00", "2026-09-07 04:40:00", "2026-09-07 04:50:00", "2026-09-07 05:00:00", "2026-09-07 05:10:00", "2026-09-07 05:20:00", "2026-09-07 05:30:00", "2026-09-07 05:40:00", "2026-09-07 05:50:00", "2026-09-07 06:00:00", "2026-09-07 06:10:00", "2026-09-07 06:20:00", "2026-09-07 06:30:00", "2026-09-07 06:40:00", "2026-09-07 06:50:00", "2026-09-07 07:00:00", "2026-09-07 07:10:00", "2026-09-07 07:20:00", "2026-09-07 07:30:00", "2026-09-07 07:40:00", "2026-09-07 07:50:00", "2026-09-07 08:00:00", "2026-09-07 08:10:00", "2026-09-07 08:20:00", "2026-09-07 08:30:00", "2026-09-07 08:40:00", "2026-09-07 08:50:00", "2026-09-07 09:00:00", "2026-09-07 09:10:00", "2026-09-07 09:20:00", "2026-09-07 09:30:00", "2026-09-07 09:40:00", "2026-09-07 09:50:00", "2026-09-07 10:00:00", "2026-09-07 10:10:00", "2026-09-07 10:20:00", "2026-09-07 10:30:00", "2026-09-07 10:40:00", "2026-09-07 10:50:00", "2026-09-07 11:00:00", "2026-09-07 11:10:00", "2026-09-07 11:20:00", "2026-09-07 11:30:00", "2026-09-07 11:40:00", "2026-09-07 11:50:00", "2026-09-07 12:00:00", "2026-09-07 12:10:00", "2026-09-07 12:20:00", "2026-09-07 12:30:00", "2026-09-07 12:40:00", "2026-09-07 12:50:00", "2026-09-07 13:00:00", "2026-09-07 13:10:00", "2026-09-07 13:20:00", "2026-09-07 13:30:00", "2026-09-07 13:40:00", "2026-09-07 13:50:00", "2026-09-07 14:00:00", "2026-09-07 14:10:00", "2026-09-07 14:20:00", "2026-09-07 14:30:00", "2026-09-07 14:40:00", "2026-09-07 14:50:00", "2026-09-07 15:00:00", "2026-09-07 15:10:00", "2026-09-07 15:20:00", "2026-09-07 15:30:00", "2026-09-07 15:40:00", "2026-09-07 15:50:00", "2026-09-07 16:00:00", "2026-09-07 16:10:00", "2026-09-07 16:20:00", "2026-09-07 16:30:00", "2026-09-07 16:40:00", "2026-09-07 16:50:00", "2026-09-07 17:00:00", "2026-09-07 17:10:00", "2026-09-07 17:20:00", "2026-09-07 17:30:00", "2026-09-07 17:40:00", "2026-09-07 17:50:00", "2026-09-07 18:00:00", "2026-09-07 18:10:00", "2026-09-07 18:20:00", "2026-09-07 18:30:00", "2026-09-07 18:40:00", "2026-09-07 18:50:00", "2026-09-07 19:00:00", "2026-09-07 19:10:00", "2026-09-07 19:20:00", "2026-09-07 19:30:00", "2026-09-07 19:40:00", "2026-09-07 19:50:00", "2026-09-07 20:00:00", "2026-09-07 20:10:00", "2026-09-07 20:20:00", "2026-09-07 20:30:00", "2026-09-07 20:40:00", "2026-09-07 20:50:00", "2026-09-07 21:00:00", "2026-09-07 21:10:00", "2026-09-07 21:20:00", "2026-09-07 21:30:00", "2026-09-07 21:40:00", "2026-09-07 21:50:00", "2026-09-07 22:00:00", "2026-09-07 22:10:00", "2026-09-07 22:20:00", "2026-09-07 22:30:00", "2026-09-07 22:40:00", "2026-09-07 22:50:00", "2026-09-07 23:00:00", "2026-09-07 23:10:00", "2026-09-07 23:20:00", "2026-09-07 23:30:00", "2026-09-07 23:40:00", "2026-09-07 23:50:00", "2026-09-08 00:00:00", "2026-09-08 00:10:00", "2026-09-08 00:20:00", "2026-09-08 00:30:00", "2026-09-08 00:40:00", "2026-09-08 00:50:00", "2026-09-08 01:00:00", "2026-09-08 01:10:00", "2026-09-08 01:20:00", "2026-09-08 01:30:00", "2026-09-08 01:40:00", "2026-09-08 01:50:00", "2026-09-08 02:00:00", "2026-09-08 02:10:00", "2026-09-08 02:20:00", "2026-09-08 02:30:00", "2026-09-08 02:40:00", "2026-09-08 02:50:00", "2026-09-08 03:00:00", "2026-09-08 03:10:00", "2026-09-08 03:20:00", "2026-09-08 03:30:00", "2026-09-08 03:40:00", "2026-09-08 03:50:00", "2026-09-08 04:00:00", "2026-09-08 04:10:00", "2026-09-08 04:20:00", "2026-09-08 04:30:00", "2026-09-08 04:40:00", "2026-09-08 04:50:00", "2026-09-08 05:00:00", "2026-09-08 05:10:00", "2026-09-08 05:20:00", "2026-09-08 05:30:00", "2026-09-08 05:40:00", "2026-09-08 05:50:00", "2026-09-08 06:00:00", "2026-09-08 06:10:00", "2026-09-08 06:20:00", "2026-09-08 06:30:00", "2026-09-08 06:40:00", "2026-09-08 06:50:00", "2026-09-08 07:00:00", "2026-09-08 07:10:00", "2026-09-08 07:20:00", "2026-09-08 07:30:00", "2026-09-08 07:40:00", "2026-09-08 07:50:00", "2026-09-08 08:00:00", "2026-09-08 08:10:00", "2026-09-08 08:20:00", "2026-09-08 08:30:00", "2026-09-08 08:40:00", "2026-09-08 08:50:00", "2026-09-08 09:00:00", "2026-09-08 09:10:00", "2026-09-08 09:20:00", "2026-09-08 09:30:00", "2026-09-08 09:40:00", "2026-09-08 09:50:00", "2026-09-08 10:00:00", "2026-09-08 10:10:00", "2026-09-08 10:20:00", "2026-09-08 10:30:00", "2026-09-08 10:40:00", "2026-09-08 10:50:00", "2026-09-08 11:00:00", "2026-09-08 11:10:00", "2026-09-08 11:20:00", "2026-09-08 11:30:00", "2026-09-08 11:40:00", "2026-09-08 11:50:00", "2026-09-08 12:00:00", "2026-09-08 12:10:00", "2026-09-08 12:20:00", "2026-09-08 12:30:00", "2026-09-08 12:40:00", "2026-09-08 12:50:00", "2026-09-08 13:00:00", "2026-09-08 13:10:00", "2026-09-08 13:20:00", "2026-09-08 13:30:00", "2026-09-08 13:40:00", "2026-09-08 13:50:00", "2026-09-08 14:00:00", "2026-09-08 14:10:00", "2026-09-08 14:20:00", "2026-09-08 14:30:00", "2026-09-08 14:40:00", "2026-09-08 14:50:00", "2026-09-08 15:00:00", "2026-09-08 15:10:00", "2026-09-08 15:20:00", "2026-09-08 15:30:00", "2026-09-08 15:40:00", "2026-09-08 15:50:00", "2026-09-08 16:00:00", "2026-09-08 16:10:00", "2026-09-08 16:20:00", "2026-09-08 16:30:00", "2026-09-08 16:40:00", "2026-09-08 16:50:00", "2026-09-08 17:00:00", "2026-09-08 17:10:00", "2026-09-08 17:20:00", "2026-09-08 17:30:00", "2026-09-08 17:40:00", "2026-09-08 17:50:00", "2026-09-08 18:00:00", "2026-09-08 18:10:00", "2026-09-08 18:20:00", "2026-09-08 18:30:00", "2026-09-08 18:40:00", "2026-09-08 18:50:00", "2026-09-08 19:00:00", "2026-09-08 19:10:00", "2026-09-08 19:20:00", "2026-09-08 19:30:00", "2026-09-08 19:40:00", "2026-09-08 19:50:00", "2026-09-08 20:00:00", "2026-09-08 20:10:00", "2026-09-08 20:20:00", "2026-09-08 20:30:00", "2026-09-08 20:40:00", "2026-09-08 20:50:00", "2026-09-08 21:00:00", "2026-09-08 21:10:00", "2026-09-08 21:20:00", "2026-09-08 21:30:00", "2026-09-08 21:40:00", "2026-09-08 21:50:00", "2026-09-08 22:00:00", "2026-09-08 22:10:00", "2026-09-08 22:20:00", "2026-09-08 22:30:00", "2026-09-08 22:40:00", "2026-09-08 22:50:00", "2026-09-08 23:00:00", "2026-09-08 23:10:00", "2026-09-08 23:20:00", "2026-09-08 23:30:00", "2026-09-08 23:40:00", "2026-09-08 23:50:00", "2026-09-09 00:00:00", "2026-09-09 00:10:00", "2026-09-09 00:20:00", "2026-09-09 00:30:00", "2026-09-09 00:40:00", "2026-09-09 00:50:00", "2026-09-09 01:00:00", "2026-09-09 01:10:00", "2026-09-09 01:20:00", "2026-09-09 01:30:00", "2026-09-09 01:40:00", "2026-09-09 01:50:00", "2026-09-09 02:00:00", "2026-09-09 02:10:00", "2026-09-09 02:20:00", "2026-09-09 02:30:00", "2026-09-09 02:40:00", "2026-09-09 02:50:00", "2026-09-09 03:00:00", "2026-09-09 03:10:00", "2026-09-09 03:20:00", "2026-09-09 03:30:00", "2026-09-09 03:40:00", "2026-09-09 03:50:00", "2026-09-09 04:00:00", "2026-09-09 04:10:00", "2026-09-09 04:20:00", "2026-09-09 04:30:00", "2026-09-09 04:40:00", "2026-09-09 04:50:00", "2026-09-09 05:00:00", "2026-09-09 05:10:00", "2026-09-09 05:20:00", "2026-09-09 05:30:00", "2026-09-09 05:40:00", "2026-09-09 05:50:00", "2026-09-09 06:00:00", "2026-09-09 06:10:00", "2026-09-09 06:20:00", "2026-09-09 06:30:00", "2026-09-09 06:40:00", "2026-09-09 06:50:00", "2026-09-09 07:00:00", "2026-09-09 07:10:00", "2026-09-09 07:20:00", "2026-09-09 07:30:00", "2026-09-09 07:40:00", "2026-09-09 07:50:00", "2026-09-09 08:00:00", "2026-09-09 08:10:00", "2026-09-09 08:20:00", "2026-09-09 08:30:00", "2026-09-09 08:40:00", "2026-09-09 08:50:00", "2026-09-09 09:00:00", "2026-09-09 09:10:00", "2026-09-09 09:20:00", "2026-09-09 09:30:00", "2026-09-09 09:40:00", "2026-09-09 09:50:00", "2026-09-09 10:00:00", "2026-09-09 10:10:00", "2026-09-09 10:20:00", "2026-09-09 10:30:00", "2026-09-09 10:40:00", "2026-09-09 10:50:00", "2026-09-09 11:00:00", "2026-09-09 11:10:00", "2026-09-09 11:20:00", "2026-09-09 11:30:00", "2026-09-09 11:40:00", "2026-09-09 11:50:00", "2026-09-09 12:00:00", "2026-09-09 12:10:00", "2026-09-09 12:20:00", "2026-09-09 12:30:00", "2026-09-09 12:40:00", "2026-09-09 12:50:00", "2026-09-09 13:00:00", "2026-09-09 13:10:00", "2026-09-09 13:20:00", "2026-09-09 13:30:00", "2026-09-09 13:40:00", "2026-09-09 13:50:00", "2026-09-09 14:00:00", "2026-09-09 14:10:00", "2026-09-09 14:20:00", "2026-09-09 14:30:00", "2026-09-09 14:40:00", "2026-09-09 14:50:00", "2026-09-09 15:00:00", "2026-09-09 15:10:00", "2026-09-09 15:20:00", "2026-09-09 15:30:00", "2026-09-09 15:40:00", "2026-09-09 15:50:00", "2026-09-09 16:00:00", "2026-09-09 16:10:00", "2026-09-09 16:20:00", "2026-09-09 16:30:00", "2026-09-09 16:40:00", "2026-09-09 16:50:00", "2026-09-09 17:00:00", "2026-09-09 17:10:00", "2026-09-09 17:20:00", "2026-09-09 17:30:00", "2026-09-09 17:40:00", "2026-09-09 17:50:00", "2026-09-09 18:00:00", "2026-09-09 18:10:00", "2026-09-09 18:20:00", "2026-09-09 18:30:00", "2026-09-09 18:40:00", "2026-09-09 18:50:00", "2026-09-09 19:00:00", "2026-09-09 19:10:00", "2026-09-09 19:20:00", "2026-09-09 19:30:00", "2026-09-09 19:40:00", "2026-09-09 19:50:00", "2026-09-09 20:00:00", "2026-09-09 20:10:00", "2026-09-09 20:20:00", "2026-09-09 20:30:00", "2026-09-09 20:40:00", "2026-09-09 20:50:00", "2026-09-09 21:00:00", "2026-09-09 21:10:00", "2026-09-09 21:20:00", "2026-09-09 21:30:00", "2026-09-09 21:40:00", "2026-09-09 21:50:00", "2026-09-09 22:00:00", "2026-09-09 22:10:00", "2026-09-09 22:20:00", "2026-09-09 22:30:00", "2026-09-09 22:40:00", "2026-09-09 22:50:00", "2026-09-09 23:00:00", "2026-09-09 23:10:00", "2026-09-09 23:20:00", "2026-09-09 23:30:00", "2026-09-09 23:40:00", "2026-09-09 23:50:00"], "y": [8.5302, 8.769, 8.911, 9.0726, 9.1017, 9.0718, 9.0678, 9.0842, 10.1649, 10.1105, 10.1564, 10.2375, 10.2781, 10.3336, 10.4007, 10.4024, 10.3567, 10.3191, 10.21, 9.9898, 9.1918, 9.0943, 8.9906, 8.9123, 8.8438, 8.8847, 8.9197, 8.7696, 8.6755, 8.584, 8.5978, 8.5999, 8.5139, 8.5461, 8.5427, 8.5108, 8.4734, 8.4661, 8.5188, 8.7487, 9.0276, 9.8926, 10.1668, 10.4834, 10.7834, 10.9199, 11.1247, 11.3279, 11.3344, 11.3287, 11.4507, 11.6224, 11.738, 11.8835, 12.3703, 12.9342, 13.2876, 13.5187, 13.5283, 13.588, 13.528, 13.3833, 13.3241, 13.4129, 13.706, 14.1176, 14.5596, 14.9192, 15.052, 15.3362, 15.5056, 15.4253, 15.3529, 15.392, 15.605, 15.5685, 15.5741, 15.769, 15.8697, 15.9643, 16.0396, 16.3189, 16.6336, 16.7515, 17.1621, 15.8571, 15.528, 15.5618, 15.4086, 15.3173, 14.7182, 14.0194, 13.5792, 13.2454, 12.878, 12.3968, 12.1675, 12.2573, 12.5611, 12.4869, 12.5081, 12.8277, 13.9713, 14.0128, 13.7021, 12.5552, 12.2601, 11.8109, 11.3904, 11.009, 10.7167, 10.7039, 11.0931, 11.3989, 11.685, 11.8981, 12.0205, 11.8776, 11.5101, 11.2764, 11.0119, 10.801, 10.6051, 10.5274, 10.5195, 10.4682, 10.497, 10.3313, 10.3559, 10.3339, 10.2623, 10.2053, 10.1242, 9.9814, 10.0493, 9.8783, 9.1631, 9.9261, 9.9965, 10.0344, 10.0187, 10.1736, 10.3753, 10.4893, 10.6395, 10.6408, 10.7418, 10.842, 10.8338, 10.8683, 10.8875, 10.9279, 10.9064, 10.8677, 11.6881, 11.6956, 10.8732, 11.6933, 10.8659, 10.8909, 10.8196, 10.8337, 10.8234, 10.8904, 10.881, 10.8506, 10.791, 10.6932, 10.6358, 10.6206, 10.5444, 10.5061, 10.5206, 10.5198, 10.4644, 10.3782, 10.3229, 10.3085, 10.3286, 10.4144, 10.5038, 10.5661, 10.6749, 10.7634, 11.5576, 11.5122, 11.4634, 11.4099, 11.3185, 11.181, 10.9766, 10.8299, 10.659, 10.579, 10.5493, 10.6211, 10.0615, 10.1904, 10.2502, 10.3412, 10.4228, 10.6274, 10.7192, 10.7731, 11.0616, 11.3701, 11.3256, 11.2342, 11.4155, 11.5544, 11.5628, 11.5361, 11.7398, 12.0621, 11.9468, 12.1489, 12.0924, 11.9475, 11.8991, 12.3834, 12.6492, 12.5147, 12.5374, 12.5848, 12.5113, 12.3857, 12.6155, 12.3855, 12.5349, 12.5845, 12.5274, 12.1833, 12.1095, 13.1766, 11.9165, 12.9791, 12.9881, 13.3033, 13.5097, 12.3393, 12.7394, 13.1121, 14.4761, 12.8437, 12.7058, 13.7433, 13.4672, 13.2557, 11.9662, 11.7553, 12.224, 12.5937, 12.505, 12.4107, 12.2727, 12.2874, 11.8136, 11.3547, 11.0833, 11.9115, 11.6429, 11.2954, 11.4042, 11.4826, 11.4375, 11.2786, 11.0552, 10.9477, 10.8235, 10.9623, 10.2908, 10.2538, 10.4152, 10.5106, 10.5809, 10.4468, 10.4986, 10.3585, 10.2539, 10.4495, 10.5021, 10.5833, 10.5917, 10.5754, 10.3728, 10.2515, 10.1321, 9.9207, 9.8758, 9.9518, 9.9463, 9.9505, 9.9209, 9.2226, 9.2291, 9.129, 9.0138, 8.9158, 8.9148, 8.8464, 8.688, 8.6492, 8.6573, 8.6839, 8.7548, 8.8946, 8.8865, 8.862, 8.8738, 8.9355, 8.9923, 8.9136, 8.7934, 8.8423, 8.8677, 8.7386, 8.7755, 8.7244, 8.6429, 8.5, 8.4154, 8.4325, 8.311, 7.9138, 7.8903, 7.8232, 7.6987, 7.6064, 7.6953, 7.651, 7.4215, 7.229, 7.133, 6.9647, 6.9927, 6.9229, 6.8464, 6.747, 6.6197, 6.4798, 6.2572, 6.0752, 5.3101, 5.086, 4.9567, 4.7935, 4.7189, 4.6923, 4.7118, 4.8058, 4.84, 4.8834, 4.9394, 5.0172, 5.1816, 5.1326, 4.8952, 4.9319, 4.8822, 4.8367, 4.6959, 4.8056, 4.7869, 4.829, 4.8862, 4.8075, 4.8468, 4.7872, 4.9008, 4.9549, 4.795, 4.6306, 4.7836, 4.6506, 4.4102, 4.4499, 4.3819, 4.1385, 4.3745, 4.2057, 4.0692, 4.0041, 4.011, 4.035, 4.0036, 4.0216, 4.1247, 4.4678, 4.3317, 4.25, 4.3728, 4.2824, 3.8246, 3.7303, 3.7206, 3.7433, 3.6863, 4.0524, 4.1976, 4.1799, 4.3961, 4.6232, 4.3677, 4.5239, 4.6862, 5.1143, 5.1437, 5.2319, 5.2675, 5.4332, 6.033, 6.1472, 6.3387, 6.5423, 6.712, 6.7569, 6.9679, 7.3178, 8.5336, 8.8304, 9.139, 10.0123, 10.2766, 10.5263, 10.5952, 10.7212, 10.8196, 10.9065, 11.004, 11.1138, 11.2929, 11.4308, 11.5418, 11.5135, 11.4189, 11.2373, 11.1624, 11.1215, 10.9788, 10.9098, 10.85, 10.7231, 10.5852, 10.5043, 7.8641, 7.9076, 7.7248, 7.6502, 7.6763, 7.6052, 7.4058, 7.1521, 7.0593, 6.943, 6.9216, 7.1329, 7.0786, 6.8157, 6.8814, 7.1962, 7.3361, 7.349, 7.3714, 7.371, 7.397, 7.3104, 7.0979, 7.214, 7.4593, 7.4713, 7.4673, 7.404, 7.3749, 8.3462, 7.5842, 7.3119, 7.211, 7.0976, 6.959, 6.6716, 6.8502, 7.0629, 6.9434, 6.8599, 6.9167, 7.0792, 7.1734, 7.3689, 7.5046, 7.5991, 7.7663, 7.8616, 7.9585, 7.76, 7.6823, 7.9563, 8.2613, 8.3147, 7.8967, 7.7666, 7.9173, 7.6458, 7.4723, 7.4532, 7.3415, 7.2185, 6.883, 6.7083, 6.6786, 6.6543, 6.6344, 6.4042, 6.5444, 6.4529, 6.3298, 6.6742, 6.6845, 6.3499, 6.1696, 6.085, 6.1223, 6.0936, 5.4604, 6.1035, 6.2808, 6.095, 6.2702, 6.2542, 6.159, 6.0082, 5.4956, 5.4907, 5.4036, 5.4672, 5.396, 6.0017, 5.4338, 6.2415, 6.3432, 6.6736, 6.8591, 7.1512, 7.313, 7.4544, 7.4771, 7.3244, 7.2235, 7.2288, 7.2491, 7.3415, 7.3357, 7.3426, 7.3517, 7.2996, 7.0878, 7.0679, 6.9352, 6.8677, 6.9574, 6.9745, 6.9485, 7.6103, 7.7651, 7.8423, 7.922, 8.3063, 8.4224, 8.5118, 8.6193, 8.7971, 8.951, 9.0593, 9.1509, 9.8842, 9.9454, 10.0036, 10.1064, 10.0641, 9.9673, 8.6682, 8.4447, 8.3262, 8.8122, 8.6778, 8.5126, 8.4496, 7.3238, 7.3408, 7.2863, 7.132, 7.1509, 7.0544, 6.9321, 6.7421, 6.5544, 6.3938, 6.2541, 6.134, 6.1159, 6.1842, 6.3535, 6.6362, 6.8899, 7.0598, 7.1392, 7.5118, 7.4753, 7.4567, 7.4741, 7.544, 7.7408, 7.9465, 8.4059, 8.6505, 8.8584, 9.0106, 9.0233, 9.0387, 9.0733, 9.0274, 8.9055, 8.7529, 8.6693, 8.6029, 8.5072, 8.4528, 8.473, 8.4944, 8.4489, 8.3336, 7.9426, 7.7422, 7.6606, 7.7209, 8.3125, 8.6996, 9.2149, 10.3492, 10.652, 10.7247, 10.4437, 10.1684, 9.1974, 8.9409, 8.6804, 8.4891, 8.4832, 8.458, 8.4038, 8.2713, 7.969, 8.2946, 8.3291, 8.3662, 8.4361, 8.4553, 8.5457, 8.6207, 8.6945, 8.7959, 8.8781, 8.8546, 8.8239, 8.7426, 8.6258, 8.4605, 8.2932, 8.2906, 7.9199, 7.7961, 7.55, 7.3762, 7.1595, 6.9446, 6.8328, 6.6882, 6.5929, 6.4193, 6.2144, 5.4229, 5.0734, 4.7738, 4.5979, 4.4219, 4.3501, 4.1754, 4.0469, 4.0831, 3.9995, 3.9289, 3.8044, 4.4107, 3.5959, 3.5188, 3.4368, 3.4382, 3.4269, 3.4203, 4.5846, 4.7227, 4.9498, 4.4841, 4.7917, 4.9902, 5.4422, 6.2807, 6.7397, 7.2008, 7.5877, 8.2766, 8.8275, 10.2826, 11.0818, 11.8799, 12.5057, 11.0422, 11.4484, 11.0998, 11.527, 10.758, 10.0861, 8.8017, 8.3799, 7.5288, 7.8457, 8.6165, 8.9465, 10.1635, 10.6087, 10.8291, 11.7471, 11.9378, 12.2187, 12.6176, 12.2758, 13.5707, 13.8652, 14.4198, 14.7161, 14.5256, 14.4559, 13.7465, 13.6036, 12.6043, 12.0178, 11.9448, 11.5532, 10.6854, 10.0473, 9.8494, 9.1723, 9.8792, 9.2366, 9.2174, 9.8842, 9.2095, 9.0477, 8.7391, 8.5638, 8.4537, 8.4839, 8.4881, 8.406, 8.5833, 8.6634, 8.7043, 8.6153, 8.6815, 9.1917, 8.5832, 8.5927, 9.0631, 8.947, 8.7613, 8.6238, 8.615, 8.7128, 8.9346, 8.8024, 8.7116, 8.9124, 9.1365, 9.0519, 9.0671, 9.033, 10.2222, 10.2113, 8.8539, 10.1631, 10.0781, 9.9484, 9.0873, 9.0898, 9.234, 8.6082, 9.8605, 9.9471, 10.1778, 10.2453, 10.3278, 10.382, 10.6685, 10.7959, 10.9224, 11.022, 11.1637, 11.3668, 11.1642, 10.3721, 10.7682, 10.9157, 11.642, 11.5562, 11.6718, 11.6813, 11.7455, 11.0081, 11.5364, 11.8243, 12.0288, 12.1051, 11.3111, 12.035, 12.251, 12.1955, 12.1624, 12.0983, 11.949, 11.5421, 11.3564, 11.1504, 10.9688, 10.9663, 11.0667, 10.3791, 10.4193, 11.134, 11.3491, 11.5068, 11.4492, 11.637, 11.6686, 11.5782, 11.4268, 11.1738, 11.1253, 10.8048, 10.7529, 10.5212, 10.5701, 10.7066, 10.745, 10.6421, 10.4885, 10.271, 10.1177, 9.847, 8.9833, 8.9859, 8.9521, 8.8075, 8.653, 8.627, 8.6209], "type": "scatter"},
 {"fill": "tonexty", "fillcolor": "rgba(11,122,117,0.15)", "hoverinfo": "skip", "line": {"width": 0}, "name": "95 % band", "x": ["2026-09-04 00:00:00", "2026-09-04 00:10:00", "2026-09-04 00:20:00", "2026-09-04 00:30:00", "2026-09-04 00:40:00", "2026-09-04 00:50:00", "2026-09-04 01:00:00", "2026-09-04 01:10:00", "2026-09-04 01:20:00", "2026-09-04 01:30:00", "2026-09-04 01:40:00", "2026-09-04 01:50:00", "2026-09-04 02:00:00", "2026-09-04 02:10:00", "2026-09-04 02:20:00", "2026-09-04 02:30:00", "2026-09-04 02:40:00", "2026-09-04 02:50:00", "2026-09-04 03:00:00", "2026-09-04 03:10:00", "2026-09-04 03:20:00", "2026-09-04 03:30:00", "2026-09-04 03:40:00", "2026-09-04 03:50:00", "2026-09-04 04:00:00", "2026-09-04 04:10:00", "2026-09-04 04:20:00", "2026-09-04 04:30:00", "2026-09-04 04:40:00", "2026-09-04 04:50:00", "2026-09-04 05:00:00", "2026-09-04 05:10:00", "2026-09-04 05:20:00", "2026-09-04 05:30:00", "2026-09-04 05:40:00", "2026-09-04 05:50:00", "2026-09-04 06:00:00", "2026-09-04 06:10:00", "2026-09-04 06:20:00", "2026-09-04 06:30:00", "2026-09-04 06:40:00", "2026-09-04 06:50:00", "2026-09-04 07:00:00", "2026-09-04 07:10:00", "2026-09-04 07:20:00", "2026-09-04 07:30:00", "2026-09-04 07:40:00", "2026-09-04 07:50:00", "2026-09-04 08:00:00", "2026-09-04 08:10:00", "2026-09-04 08:20:00", "2026-09-04 08:30:00", "2026-09-04 08:40:00", "2026-09-04 08:50:00", "2026-09-04 09:00:00", "2026-09-04 09:10:00", "2026-09-04 09:20:00", "2026-09-04 09:30:00", "2026-09-04 09:40:00", "2026-09-04 09:50:00", "2026-09-04 10:00:00", "2026-09-04 10:10:00", "2026-09-04 10:20:00", "2026-09-04 10:30:00", "2026-09-04 10:40:00", "2026-09-04 10:50:00", "2026-09-04 11:00:00", "2026-09-04 11:10:00", "2026-09-04 11:20:00", "2026-09-04 11:30:00", "2026-09-04 11:40:00", "2026-09-04 11:50:00", "2026-09-04 12:00:00", "2026-09-04 12:10:00", "2026-09-04 12:20:00", "2026-09-04 12:30:00", "2026-09-04 12:40:00", "2026-09-04 12:50:00", "2026-09-04 13:00:00", "2026-09-04 13:10:00", "2026-09-04 13:20:00", "2026-09-04 13:30:00", "2026-09-04 13:40:00", "2026-09-04 13:50:00", "2026-09-04 14:00:00", "2026-09-04 14:10:00", "2026-09-04 14:20:00", "2026-09-04 14:30:00", "2026-09-04 14:40:00", "2026-09-04 14:50:00", "2026-09-04 15:00:00", "2026-09-04 15:10:00", "2026-09-04 15:20:00", "2026-09-04 15:30:00", "2026-09-04 15:40:00", "2026-09-04 15:50:00", "2026-09-04 16:00:00", "2026-09-04 16:10:00", "2026-09-04 16:20:00", "2026-09-04 16:30:00", "2026-09-04 16:40:00", "2026-09-04 16:50:00", "2026-09-04 17:00:00", "2026-09-04 17:10:00", "2026-09-04 17:20:00", "2026-09-04 17:30:00", "2026-09-04 17:40:00", "2026-09-04 17:50:00", "2026-09-04 18:00:00", "2026-09-04 18:10:00", "2026-09-04 18:20:00", "2026-09-04 18:30:00", "2026-09-04 18:40:00", "2026-09-04 18:50:00", "2026-09-04 19:00:00", "2026-09-04 19:10:00", "2026-09-04 19:20:00", "2026-09-04 19:30:00", "2026-09-04 19:40:00", "2026-09-04 19:50:00", "2026-09-04 20:00:00", "2026-09-04 20:10:00", "2026-09-04 20:20:00", "2026-09-04 20:30:00", "2026-09-04 20:40:00", "2026-09-04 20:50:00", "2026-09-04 21:00:00", "2026-09-04 21:10:00", "2026-09-04 21:20:00", "2026-09-04 21:30:00", "2026-09-04 21:40:00", "2026-09-04 21:50:00", "2026-09-04 22:00:00", "2026-09-04 22:10:00", "2026-09-04 22:20:00", "2026-09-04 22:30:00", "2026-09-04 22:40:00", "2026-09-04 22:50:00", "2026-09-04 23:00:00", "2026-09-04 23:10:00", "2026-09-04 23:20:00", "2026-09-04 23:30:00", "2026-09-04 23:40:00", "2026-09-04 23:50:00", "2026-09-05 00:00:00", "2026-09-05 00:10:00", "2026-09-05 00:20:00", "2026-09-05 00:30:00", "2026-09-05 00:40:00", "2026-09-05 00:50:00", "2026-09-05 01:00:00", "2026-09-05 01:10:00", "2026-09-05 01:20:00", "2026-09-05 01:30:00", "2026-09-05 01:40:00", "2026-09-05 01:50:00", "2026-09-05 02:00:00", "2026-09-05 02:10:00", "2026-09-05 02:20:00", "2026-09-05 02:30:00", "2026-09-05 02:40:00", "2026-09-05 02:50:00", "2026-09-05 03:00:00", "2026-09-05 03:10:00", "2026-09-05 03:20:00", "2026-09-05 03:30:00", "2026-09-05 03:40:00", "2026-09-05 03:50:00", "2026-09-05 04:00:00", "2026-09-05 04:10:00", "2026-09-05 04:20:00", "2026-09-05 04:30:00", "2026-09-05 04:40:00", "2026-09-05 04:50:00", "2026-09-05 05:00:00", "2026-09-05 05:10:00", "2026-09-05 05:20:00", "2026-09-05 05:30:00", "2026-09-05 05:40:00", "2026-09-05 05:50:00", "2026-09-05 06:00:00", "2026-09-05 06:10:00", "2026-09-05 06:20:00", "2026-09-05 06:30:00", "2026-09-05 06:40:00", "2026-09-05 06:50:00", "2026-09-05 07:00:00", "2026-09-05 07:10:00", "2026-09-05 07:20:00", "2026-09-05 07:30:00", "2026-09-05 07:40:00", "2026-09-05 07:50:00", "2026-09-05 08:00:00", "2026-09-05 08:10:00", "2026-09-05 08:20:00", "2026-09-05 08:30:00", "2026-09-05 08:40:00", "2026-09-05 08:50:00", "2026-09-05 09:00:00", "2026-09-05 09:10:00", "2026-09-05 09:20:00", "2026-09-05 09:30:00", "2026-09-05 09:40:00", "2026-09-05 09:50:00", "2026-09-05 10:00:00", "2026-09-05 10:10:00", "2026-09-05 10:20:00", "2026-09-05 10:30:00", "2026-09-05 10:40:00", "2026-09-05 10:50:00", "2026-09-05 11:00:00", "2026-09-05 11:10:00", "2026-09-05 11:20:00", "2026-09-05 11:30:00", "2026-09-05 11:40:00", "2026-09-05 11:50:00", "2026-09-05 12:00:00", "2026-09-05 12:10:00", "2026-09-05 12:20:00", "2026-09-05 12:30:00", "2026-09-05 12:40:00", "2026-09-05 12:50:00", "2026-09-05 13:00:00", "2026-09-05 13:10:00", "2026-09-05 13:20:00", "2026-09-05 13:30:00", "2026-09-05 13:40:00", "2026-09-05 13:50:00", "2026-09-05 14:00:00", "2026-09-05 14:10:00", "2026-09-05 14:20:00", "2026-09-05 14:30:00", "2026-09-05 14:40:00", "2026-09-05 14:50:00", "2026-09-05 15:00:00", "2026-09-05 15:10:00", "2026-09-05 15:20:00", "2026-09-05 15:30:00", "2026-09-05 15:40:00", "2026-09-05 15:50:00", "2026-09-05 16:00:00", "2026-09-05 16:10:00", "2026-09-05 16:20:00", "2026-09-05 16:30:00", "2026-09-05 16:40:00", "2026-09-05 16:50:00", "2026-09-05 17:00:00", "2026-09-05 17:10:00", "2026-09-05 17:20:00", "2026-09-05 17:30:00", "2026-09-05 17:40:00", "2026-09-05 17:50:00", "2026-09-05 18:00:00", "2026-09-05 18:10:00", "2026-09-05 18:20:00", "2026-09-05 18:30:00", "2026-09-05 18:40:00", "2026-09-05 18:50:00", "2026-09-05 19:00:00", "2026-09-05 19:10:00", "2026-09-05 19:20:00", "2026-09-05 19:30:00", "2026-09-05 19:40:00", "2026-09-05 19:50:00", "2026-09-05 20:00:00", "2026-09-05 20:10:00", "2026-09-05 20:20:00", "2026-09-05 20:30:00", "2026-09-05 20:40:00", "2026-09-05 20:50:00", "2026-09-05 21:00:00", "2026-09-05 21:10:00", "2026-09-05 21:20:00", "2026-09-05 21:30:00", "2026-09-05 21:40:00", "2026-09-05 21:50:00", "2026-09-05 22:00:00", "2026-09-05 22:10:00", "2026-09-05 22:20:00", "2026-09-05 22:30:00", "2026-09-05 22:40:00", "2026-09-05 22:50:00", "2026-09-05 23:00:00", "2026-09-05 23:10:00", "2026-09-05 23:20:00", "2026-09-05 23:30:00", "2026-09-05 23:40:00", "2026-09-05 23:50:00", "2026-09-06 00:00:00", "2026-09-06 00:10:00", "2026-09-06 00:20:00", "2026-09-06 00:30:00", "2026-09-06 00:40:00", "2026-09-06 00:50:00", "2026-09-06 01:00:00", "2026-09-06 01:10:00", "2026-09-06 01:20:00", "2026-09-06 01:30:00", "2026-09-06 01:40:00", "2026-09-06 01:50:00", "2026-09-06 02:00:00", "2026-09-06 02:10:00", "2026-09-06 02:20:00", "2026-09-06 02:30:00", "2026-09-06 02:40:00", "2026-09-06 02:50:00", "2026-09-06 03:00:00", "2026-09-06 03:10:00", "2026-09-06 03:20:00", "2026-09-06 03:30:00", "2026-09-06 03:40:00", "2026-09-06 03:50:00", "2026-09-06 04:00:00", "2026-09-06 04:10:00", "2026-09-06 04:20:00", "2026-09-06 04:30:00", "2026-09-06 04:40:00", "2026-09-06 04:50:00", "2026-09-06 05:00:00", "2026-09-06 05:10:00", "2026-09-06 05:20:00", "2026-09-06 05:30:00", "2026-09-06 05:40:00", "2026-09-06 05:50:00", "2026-09-06 06:00:00", "2026-09-06 06:10:00", "2026-09-06 06:20:00", "2026-09-06 06:30:00", "2026-09-06 06:40:00", "2026-09-06 06:50:00", "2026-09-06 07:00:00", "2026-09-06 07:10:00", "2026-09-06 07:20:00", "2026-09-06 07:30:00", "2026-09-06 07:40:00", "2026-09-06 07:50:00", "2026-09-06 08:00:00", "2026-09-06 08:10:00", "2026-09-06 08:20:00", "2026-09-06 08:30:00", "2026-09-06 08:40:00", "2026-09-06 08:50:00", "2026-09-06 09:00:00", "2026-09-06 09:10:00", "2026-09-06 09:20:00", "2026-09-06 09:30:00", "2026-09-06 09:40:00", "2026-09-06 09:50:00", "2026-09-06 10:00:00", "2026-09-06 10:10:00", "2026-09-06 10:20:00", "2026-09-06 10:30:00", "2026-09-06 10:40:00", "2026-09-06 10:50:00", "2026-09-06 11:00:00", "2026-09-06 11:10:00", "2026-09-06 11:20:00", "2026-09-06 11:30:00", "2026-09-06 11:40:00", "2026-09-06 11:50:00", "2026-09-06 12:00:00", "2026-09-06 12:10:00", "2026-09-06 12:20:00", "2026-09-06 12:30:00", "2026-09-06 12:40:00", "2026-09-06 12:50:00", "2026-09-06 13:00:00", "2026-09-06 13:10:00", "2026-09-06 13:20:00", "2026-09-06 13:30:00", "2026-09-06 13:40:00", "2026-09-06 13:50:00", "2026-09-06 14:00:00", "2026-09-06 14:10:00", "2026-09-06 14:20:00", "2026-09-06 14:30:00", "2026-09-06 14:40:00", "2026-09-06 14:50:00", "2026-09-06 15:00:00", "2026-09-06 15:10:00", "2026-09-06 15:20:00", "2026-09-06 15:30:00", "2026-09-06 15:40:00", "2026-09-06 15:50:00", "2026-09-06 16:00:00", "2026-09-06 16:10:00", "2026-09-06 16:20:00", "2026-09-06 16:30:00", "2026-09-06 16:40:00", "2026-09-06 16:50:00", "2026-09-06 17:00:00", "2026-09-06 17:10:00", "2026-09-06 17:20:00", "2026-09-06 17:30:00", "2026-09-06 17:40:00", "2026-09-06 17:50:00", "2026-09-06 18:00:00", "2026-09-06 18:10:00", "2026-09-06 18:20:00", "2026-09-06 18:30:00", "2026-09-06 18:40:00", "2026-09-06 18:50:00", "2026-09-06 19:00:00", "2026-09-06 19:10:00", "2026-09-06 19:20:00", "2026-09-06 19:30:00", "2026-09-06 19:40:00", "2026-09-06 19:50:00", "2026-09-06 20:00:00", "2026-09-06 20:10:00", "2026-09-06 20:20:00", "2026-09-06 20:30:00", "2026-09-06 20:40:00", "2026-09-06 20:50:00", "2026-09-06 21:00:00", "2026-09-06 21:10:00", "2026-09-06 21:20:00", "2026-09-06 21:30:00", "2026-09-06 21:40:00", "2026-09-06 21:50:00", "2026-09-06 22:00:00", "2026-09-06 22:10:00", "2026-09-06 22:20:00", "2026-09-06 22:30:00", "2026-09-06 22:40:00", "2026-09-06 22:50:00", "2026-09-06 23:00:00", "2026-09-06 23:10:00", "2026-09-06 23:20:00", "2026-09-06 23:30:00", "2026-09-06 23:40:00", "2026-09-06 23:50:00", "2026-09-07 00:00:00", "2026-09-07 00:10:00", "2026-09-07 00:20:00", "2026-09-07 00:30:00", "2026-09-07 00:40:00", "2026-09-07 00:50:00", "2026-09-07 01:00:00", "2026-09-07 01:10:00", "2026-09-07 01:20:00", "2026-09-07 01:30:00", "2026-09-07 01:40:00", "2026-09-07 01:50:00", "2026-09-07 02:00:00", "2026-09-07 02:10:00", "2026-09-07 02:20:00", "2026-09-07 02:30:00", "2026-09-07 02:40:00", "2026-09-07 02:50:00", "2026-09-07 03:00:00", "2026-09-07 03:10:00", "2026-09-07 03:20:00", "2026-09-07 03:30:00", "2026-09-07 03:40:00", "2026-09-07 03:50:00", "2026-09-07 04:00:00", "2026-09-07 04:10:00", "2026-09-07 04:20:00", "2026-09-07 04:30:00", "2026-09-07 04:40:00", "2026-09-07 04:50:00", "2026-09-07 05:00:00", "2026-09-07 05:10:00", "2026-09-07 05:20:00", "2026-09-07 05:30:00", "2026-09-07 05:40:00", "2026-09-07 05:50:00", "2026-09-07 06:00:00", "2026-09-07 06:10:00", "2026-09-07 06:20:00", "2026-09-07 06:30:00", "2026-09-07 06:40:00", "2026-09-07 06:50:00", "2026-09-07 07:00:00", "2026-09-07 07:10:00", "2026-09-07 07:20:00", "2026-09-07 07:30:00", "2026-09-07 07:40:00", "2026-09-07 07:50:00", "2026-09-07 08:00:00", "2026-09-07 08:10:00", "2026-09-07 08:20:00", "2026-09-07 08:30:00", "2026-09-07 08:40:00", "2026-09-07 08:50:00", "2026-09-07 09:00:00", "2026-09-07 09:10:00", "2026-09-07 09:20:00", "2026-09-07 09:30:00", "2026-09-07 09:40:00", "2026-09-07 09:50:00", "2026-09-07 10:00:00", "2026-09-07 10:10:00", "2026-09-07 10:20:00", "2026-09-07 10:30:00", "2026-09-07 10:40:00", "2026-09-07 10:50:00", "2026-09-07 11:00:00", "2026-09-07 11:10:00", "2026-09-07 11:20:00", "2026-09-07 11:30:00", "2026-09-07 11:40:00", "2026-09-07 11:50:00", "2026-09-07 12:00:00", "2026-09-07 12:10:00", "2026-09-07 12:20:00", "2026-09-07 12:30:00", "2026-09-07 12:40:00", "2026-09-07 12:50:00", "2026-09-07 13:00:00", "2026-09-07 13:10:00", "2026-09-07 13:20:00", "2026-09-07 13:30:00", "2026-09-07 13:40:00", "2026-09-07 13:50:00", "2026-09-07 14:00:00", "2026-09-07 14:10:00", "2026-09-07 14:20:00", "2026-09-07 14:30:00", "2026-09-07 14:40:00", "2026-09-07 14:50:00", "2026-09-07 15:00:00", "2026-09-07 15:10:00", "2026-09-07 15:20:00", "2026-09-07 15:30:00", "2026-09-07 15:40:00", "2026-09-07 15:50:00", "2026-09-07 16:00:00", "2026-09-07 16:10:00", "2026-09-07 16:20:00", "2026-09-07 16:30:00", "2026-09-07 16:40:00", "2026-09-07 16:50:00", "2026-09-07 17:00:00", "2026-09-07 17:10:00", "2026-09-07 17:20:00", "2026-09-07 17:30:00", "2026-09-07 17:40:00", "2026-09-07 17:50:00", "2026-09-07 18:00:00", "2026-09-07 18:10:00", "2026-09-07 18:20:00", "2026-09-07 18:30:00", "2026-09-07 18:40:00", "2026-09-07 18:50:00", "2026-09-07 19:00:00", "2026-09-07 19:10:00", "2026-09-07 19:20:00", "2026-09-07 19:30:00", "2026-09-07 19:40:00", "2026-09-07 19:50:00", "2026-09-07 20:00:00", "2026-09-07 20:10:00", "2026-09-07 20:20:00", "2026-09-07 20:30:00", "2026-09-07 20:40:00", "2026-09-07 20:50:00", "2026-09-07 21:00:00", "2026-09-07 21:10:00", "2026-09-07 21:20:00", "2026-09-07 21:30:00", "2026-09-07 21:40:00", "2026-09-07 21:50:00", "2026-09-07 22:00:00", "2026-09-07 22:10:00", "2026-09-07 22:20:00", "2026-09-07 22:30:00", "2026-09-07 22:40:00", "2026-09-07 22:50:00", "2026-09-07 23:00:00", "2026-09-07 23:10:00", "2026-09-07 23:20:00", "2026-09-07 23:30:00", "2026-09-07 23:40:00", "2026-09-07 23:50:00", "2026-09-08 00:00:00", "2026-09-08 00:10:00", "2026-09-08 00:20:00", "2026-09-08 00:30:00", "2026-09-08 00:40:00", "2026-09-08 00:50:00", "2026-09-08 01:00:00", "2026-09-08 01:10:00", "2026-09-08 01:20:00", "2026-09-08 01:30:00", "2026-09-08 01:40:00", "2026-09-08 01:50:00", "2026-09-08 02:00:00", "2026-09-08 02:10:00", "2026-09-08 02:20:00", "2026-09-08 02:30:00", "2026-09-08 02:40:00", "2026-09-08 02:50:00", "2026-09-08 03:00:00", "2026-09-08 03:10:00", "2026-09-08 03:20:00", "2026-09-08 03:30:00", "2026-09-08 03:40:00", "2026-09-08 03:50:00", "2026-09-08 04:00:00", "2026-09-08 04:10:00", "2026-09-08 04:20:00", "2026-09-08 04:30:00", "2026-09-08 04:40:00", "2026-09-08 04:50:00", "2026-09-08 05:00:00", "2026-09-08 05:10:00", "2026-09-08 05:20:00", "2026-09-08 05:30:00", "2026-09-08 05:40:00", "2026-09-08 05:50:00", "2026-09-08 06:00:00", "2026-09-08 06:10:00", "2026-09-08 06:20:00", "2026-09-08 06:30:00", "2026-09-08 06:40:00", "2026-09-08 06:50:00", "2026-09-08 07:00:00", "2026-09-08 07:10:00", "2026-09-08 07:20:00", "2026-09-08 07:30:00", "2026-09-08 07:40:00", "2026-09-08 07:50:00", "2026-09-08 08:00:00", "2026-09-08 08:10:00", "2026-09-08 08:20:00", "2026-09-08 08:30:00", "2026-09-08 08:40:00", "2026-09-08 08:50:00", "2026-09-08 09:00:00", "2026-09-08 09:10:00", "2026-09-08 09:20:00", "2026-09-08 09:30:00", "2026-09-08 09:40:00", "2026-09-08 09:50:00", "2026-09-08 10:00:00", "2026-09-08 10:10:00", "2026-09-08 10:20:00", "2026-09-08 10:30:00", "2026-09-08 10:40:00", "2026-09-08 10:50:00", "2026-09-08 11:00:00", "2026-09-08 11:10:00", "2026-09-08 11:20:00", "2026-09-08 11:30:00", "2026-09-08 11:40:00", "2026-09-08 11:50:00", "2026-09-08 12:00:00", "2026-09-08 12:10:00", "2026-09-08 12:20:00", "2026-09-08 12:30:00", "2026-09-08 12:40:00", "2026-09-08 12:50:00", "2026-09-08 13:00:00", "2026-09-08 13:10:00", "2026-09-08 13:20:00", "2026-09-08 13:30:00", "2026-09-08 13:40:00", "2026-09-08 13:50:00", "2026-09-08 14:00:00", "2026-09-08 14:10:00", "2026-09-08 14:20:00", "2026-09-08 14:30:00", "2026-09-08 14:40:00", "2026-09-08 14:50:00", "2026-09-08 15:00:00", "2026-09-08 15:10:00", "2026-09-08 15:20:00", "2026-09-08 15:30:00", "2026-09-08 15:40:00", "2026-09-08 15:50:00", "2026-09-08 16:00:00", "2026-09-08 16:10:00", "2026-09-08 16:20:00", "2026-09-08 16:30:00", "2026-09-08 16:40:00", "2026-09-08 16:50:00", "2026-09-08 17:00:00", "2026-09-08 17:10:00", "2026-09-08 17:20:00", "2026-09-08 17:30:00", "2026-09-08 17:40:00", "2026-09-08 17:50:00", "2026-09-08 18:00:00", "2026-09-08 18:10:00", "2026-09-08 18:20:00", "2026-09-08 18:30:00", "2026-09-08 18:40:00", "2026-09-08 18:50:00", "2026-09-08 19:00:00", "2026-09-08 19:10:00", "2026-09-08 19:20:00", "2026-09-08 19:30:00", "2026-09-08 19:40:00", "2026-09-08 19:50:00", "2026-09-08 20:00:00", "2026-09-08 20:10:00", "2026-09-08 20:20:00", "2026-09-08 20:30:00", "2026-09-08 20:40:00", "2026-09-08 20:50:00", "2026-09-08 21:00:00", "2026-09-08 21:10:00", "2026-09-08 21:20:00", "2026-09-08 21:30:00", "2026-09-08 21:40:00", "2026-09-08 21:50:00", "2026-09-08 22:00:00", "2026-09-08 22:10:00", "2026-09-08 22:20:00", "2026-09-08 22:30:00", "2026-09-08 22:40:00", "2026-09-08 22:50:00", "2026-09-08 23:00:00", "2026-09-08 23:10:00", "2026-09-08 23:20:00", "2026-09-08 23:30:00", "2026-09-08 23:40:00", "2026-09-08 23:50:00", "2026-09-09 00:00:00", "2026-09-09 00:10:00", "2026-09-09 00:20:00", "2026-09-09 00:30:00", "2026-09-09 00:40:00", "2026-09-09 00:50:00", "2026-09-09 01:00:00", "2026-09-09 01:10:00", "2026-09-09 01:20:00", "2026-09-09 01:30:00", "2026-09-09 01:40:00", "2026-09-09 01:50:00", "2026-09-09 02:00:00", "2026-09-09 02:10:00", "2026-09-09 02:20:00", "2026-09-09 02:30:00", "2026-09-09 02:40:00", "2026-09-09 02:50:00", "2026-09-09 03:00:00", "2026-09-09 03:10:00", "2026-09-09 03:20:00", "2026-09-09 03:30:00", "2026-09-09 03:40:00", "2026-09-09 03:50:00", "2026-09-09 04:00:00", "2026-09-09 04:10:00", "2026-09-09 04:20:00", "2026-09-09 04:30:00", "2026-09-09 04:40:00", "2026-09-09 04:50:00", "2026-09-09 05:00:00", "2026-09-09 05:10:00", "2026-09-09 05:20:00", "2026-09-09 05:30:00", "2026-09-09 05:40:00", "2026-09-09 05:50:00", "2026-09-09 06:00:00", "2026-09-09 06:10:00", "2026-09-09 06:20:00", "2026-09-09 06:30:00", "2026-09-09 06:40:00", "2026-09-09 06:50:00", "2026-09-09 07:00:00", "2026-09-09 07:10:00", "2026-09-09 07:20:00", "2026-09-09 07:30:00", "2026-09-09 07:40:00", "2026-09-09 07:50:00", "2026-09-09 08:00:00", "2026-09-09 08:10:00", "2026-09-09 08:20:00", "2026-09-09 08:30:00", "2026-09-09 08:40:00", "2026-09-09 08:50:00", "2026-09-09 09:00:00", "2026-09-09 09:10:00", "2026-09-09 09:20:00", "2026-09-09 09:30:00", "2026-09-09 09:40:00", "2026-09-09 09:50:00", "2026-09-09 10:00:00", "2026-09-09 10:10:00", "2026-09-09 10:20:00", "2026-09-09 10:30:00", "2026-09-09 10:40:00", "2026-09-09 10:50:00", "2026-09-09 11:00:00", "2026-09-09 11:10:00", "2026-09-09 11:20:00", "2026-09-09 11:30:00", "2026-09-09 11:40:00", "2026-09-09 11:50:00", "2026-09-09 12:00:00", "2026-09-09 12:10:00", "2026-09-09 12:20:00", "2026-09-09 12:30:00", "2026-09-09 12:40:00", "2026-09-09 12:50:00", "2026-09-09 13:00:00", "2026-09-09 13:10:00", "2026-09-09 13:20:00", "2026-09-09 13:30:00", "2026-09-09 13:40:00", "2026-09-09 13:50:00", "2026-09-09 14:00:00", "2026-09-09 14:10:00", "2026-09-09 14:20:00", "2026-09-09 14:30:00", "2026-09-09 14:40:00", "2026-09-09 14:50:00", "2026-09-09 15:00:00", "2026-09-09 15:10:00", "2026-09-09 15:20:00", "2026-09-09 15:30:00", "2026-09-09 15:40:00", "2026-09-09 15:50:00", "2026-09-09 16:00:00", "2026-09-09 16:10:00", "2026-09-09 16:20:00", "2026-09-09 16:30:00", "2026-09-09 16:40:00", "2026-09-09 16:50:00", "2026-09-09 17:00:00", "2026-09-09 17:10:00", "2026-09-09 17:20:00", "2026-09-09 17:30:00", "2026-09-09 17:40:00", "2026-09-09 17:50:00", "2026-09-09 18:00:00", "2026-09-09 18:10:00", "2026-09-09 18:20:00", "2026-09-09 18:30:00", "2026-09-09 18:40:00", "2026-09-09 18:50:00", "2026-09-09 19:00:00", "2026-09-09 19:10:00", "2026-09-09 19:20:00", "2026-09-09 19:30:00", "2026-09-09 19:40:00", "2026-09-09 19:50:00", "2026-09-09 20:00:00", "2026-09-09 20:10:00", "2026-09-09 20:20:00", "2026-09-09 20:30:00", "2026-09-09 20:40:00", "2026-09-09 20:50:00", "2026-09-09 21:00:00", "2026-09-09 21:10:00", "2026-09-09 21:20:00", "2026-09-09 21:30:00", "2026-09-09 21:40:00", "2026-09-09 21:50:00", "2026-09-09 22:00:00", "2026-09-09 22:10:00", "2026-09-09 22:20:00", "2026-09-09 22:30:00", "2026-09-09 22:40:00", "2026-09-09 22:50:00", "2026-09-09 23:00:00", "2026-09-09 23:10:00", "2026-09-09 23:20:00", "2026-09-09 23:30:00", "2026-09-09 23:40:00", "2026-09-09 23:50:00"], "y": [3.4602, 3.699, 3.841, 4.0026, 4.0317, 4.0018, 3.9978, 4.0142, 3.8879, 3.8335, 3.8794, 3.9606, 4.0012, 4.0567, 4.1237, 4.1254, 4.0797, 4.0421, 3.9331, 3.7129, 4.1218, 4.0243, 3.9206, 3.8422, 3.7738, 3.8147, 3.8497, 3.6996, 3.6054, 3.514, 3.5278, 3.5298, 3.4439, 3.4761, 3.4726, 3.4408, 3.4034, 3.3961, 3.4488, 3.6787, 3.9576, 3.6157, 3.8899, 4.2065, 4.5065, 4.6429, 4.8478, 5.0509, 5.0575, 5.0518, 5.1738, 5.3454, 5.4611, 5.6066, 6.0933, 6.6572, 7.0107, 7.2418, 7.2514, 7.3111, 7.251, 7.1064, 7.0471, 7.136, 7.429, 7.8406, 8.2826, 8.6422, 8.7751, 9.0592, 9.2287, 9.1484, 9.076, 9.115, 9.3281, 9.2915, 9.2971, 9.492, 9.5928, 9.6874, 9.7626, 10.0419, 10.3567, 10.4745, 10.8851, 9.5801, 9.251, 9.2848, 9.1317, 9.0403, 8.4412, 7.7424, 7.3023, 6.9684, 6.6011, 6.1199, 5.8906, 5.9803, 6.2841, 6.2099, 6.2311, 6.5508, 7.6943, 7.7359, 7.4252, 6.2782, 5.9832, 5.5339, 5.1134, 4.7321, 4.4397, 4.4269, 4.8162, 5.122, 5.4081, 5.6212, 5.7435, 5.6006, 5.2332, 4.9995, 4.7349, 4.5241, 4.3281, 4.2505, 4.2425, 4.1912, 4.2201, 4.0543, 4.079, 4.0569, 3.9853, 3.9284, 3.8473, 3.7044, 3.7723, 3.6013, 4.0931, 3.6492, 3.7195, 3.7574, 3.7417, 3.8967, 4.0984, 4.2123, 4.3625, 4.3638, 4.4649, 4.5651, 4.5568, 4.5914, 4.6105, 4.6509, 4.6294, 4.5908, 5.4111, 5.4187, 4.5962, 5.4164, 4.5889, 4.6139, 4.5427, 4.5567, 4.5465, 4.6135, 4.604, 4.5737, 4.5141, 4.4163, 4.3588, 4.3436, 4.2674, 4.2292, 4.2436, 4.2428, 4.1874, 4.1012, 4.046, 4.0316, 4.0517, 4.1375, 4.2269, 4.2892, 4.3979, 4.4865, 5.2806, 5.2352, 5.1864, 5.133, 5.0415, 4.9041, 4.6996, 4.553, 4.3821, 4.302, 4.2723, 4.3441, 3.7845, 3.9135, 3.9732, 4.0642, 4.1458, 4.3505, 4.4423, 4.4962, 4.7846, 5.0931, 5.0486, 4.9572, 5.1386, 5.2774, 5.2859, 5.2591, 5.4629, 5.7851, 5.6698, 5.8719, 5.8154, 5.6705, 5.6221, 6.1064, 6.3723, 6.2377, 6.2604, 6.3078, 6.2343, 6.1088, 6.3385, 6.1085, 6.2579, 6.3075, 6.2505, 5.9063, 5.8325, 6.8997, 5.6395, 6.7022, 6.7112, 7.0263, 7.2327, 6.0624, 6.4624, 6.8351, 8.1992, 6.5667, 6.4289, 7.4664, 7.1902, 6.9788, 5.6893, 5.4783, 5.947, 6.3168, 6.228, 6.1337, 5.9957, 6.0104, 5.5366, 5.0777, 4.8063, 5.6346, 5.3659, 5.0184, 5.1272, 5.2056, 5.1605, 5.0017, 4.7782, 4.6707, 4.5465, 4.6853, 4.0138, 3.9768, 4.1382, 4.2336, 4.3039, 4.1698, 4.2216, 4.0815, 3.977, 4.1726, 4.2251, 4.3063, 4.3148, 4.2985, 4.0958, 3.9746, 3.8551, 3.6437, 3.5989, 3.6749, 3.6693, 3.6735, 3.644, 4.1526, 4.1591, 4.059, 3.9438, 3.8458, 3.8448, 3.7764, 3.618, 3.5792, 3.5873, 3.6139, 3.6848, 3.8246, 3.8165, 3.792, 3.8038, 3.8655, 3.9223, 3.8436, 3.7234, 3.7723, 3.7977, 3.6686, 3.7055, 3.6544, 3.5729, 3.43, 3.3454, 3.3625, 3.241, 3.3679, 3.3444, 3.2773, 3.1528, 3.0605, 3.1494, 3.1051, 2.8756, 2.6831, 2.5871, 2.5022, 2.5302, 2.4604, 2.3839, 2.2844, 2.1572, 2.0173, 1.7947, 1.6127, 1.8189, 1.5947, 1.4655, 1.3022, 1.2277, 1.2011, 1.2205, 1.3145, 1.3488, 1.3922, 1.4482, 1.5259, 1.6903, 1.6413, 1.404, 1.4407, 1.3909, 1.3454, 1.2047, 1.3143, 1.2956, 1.3377, 1.395, 1.3162, 1.3556, 1.2959, 1.4095, 1.4636, 1.3037, 1.1393, 1.2924, 1.1593, 0.919, 0.9587, 0.8906, 0.6472, 0.8832, 0.7145, 0.578, 0.5129, 0.5197, 0.5438, 0.5123, 0.5304, 0.6335, 0.9766, 0.8404, 0.7588, 0.8815, 0.7911, 0.3334, 0.2391, 0.2294, 0.252, 0.1951, 0.5612, 0.7064, 0.6886, 0.9048, 1.132, 0.8764, 1.0326, 1.195, 1.6231, 1.6525, 1.7406, 1.7762, 1.942, 1.5705, 1.6847, 1.8762, 2.0798, 2.2494, 2.2944, 2.5054, 2.7719, 3.4635, 3.7604, 4.069, 3.7353, 3.9997, 4.2493, 4.3183, 4.4443, 4.5426, 4.6295, 4.727, 4.8369, 5.0159, 5.1539, 5.2648, 5.2365, 5.1419, 4.9603, 4.8855, 4.8445, 4.7019, 4.6329, 4.5731, 4.4462, 4.3082, 4.2273, 3.3182, 3.3617, 3.1789, 3.1043, 3.1304, 3.0593, 2.8599, 2.6062, 2.5134, 2.4805, 2.4591, 2.5869, 2.5326, 2.3531, 2.4189, 2.6503, 2.7901, 2.8031, 2.8255, 2.825, 2.8511, 2.7645, 2.552, 2.6681, 2.9134, 2.9253, 2.9214, 2.8581, 2.829, 3.2762, 3.0383, 2.7659, 2.6651, 2.5517, 2.4964, 2.2091, 2.3877, 2.517, 2.4809, 2.3974, 2.4542, 2.5332, 2.6275, 2.823, 2.9586, 3.0532, 3.2203, 3.3157, 3.4126, 3.2141, 3.1363, 3.4104, 3.1913, 3.2447, 3.3507, 3.2206, 3.3714, 3.0999, 2.9264, 2.9073, 2.7956, 2.6726, 2.4205, 2.2457, 2.216, 2.1918, 2.1718, 1.9416, 2.0819, 1.9904, 1.8673, 2.2117, 2.222, 1.8874, 1.7071, 1.6225, 1.6598, 1.631, 1.9692, 1.641, 1.8183, 1.6324, 1.8077, 1.7917, 1.6964, 1.5457, 2.0044, 1.9995, 1.9124, 1.976, 1.9048, 1.5392, 1.9425, 1.779, 1.8806, 2.2111, 2.3966, 2.6053, 2.767, 2.9085, 2.9312, 2.7785, 2.6775, 2.6829, 2.7032, 2.7956, 2.7898, 2.7966, 2.8058, 2.7537, 2.5419, 2.522, 2.4726, 2.4052, 2.4949, 2.512, 2.486, 3.0643, 3.2192, 3.2963, 3.3761, 3.2363, 3.3523, 3.4417, 3.5493, 3.7271, 3.881, 3.9893, 4.0809, 3.6072, 3.6685, 3.7266, 3.8294, 3.7872, 3.6904, 3.5982, 3.3747, 3.2562, 3.7422, 3.6078, 3.4426, 3.3796, 2.7778, 2.7948, 2.7404, 2.5861, 2.605, 2.5085, 2.4696, 2.2796, 2.0919, 1.9312, 1.7915, 1.6715, 1.6534, 1.7217, 1.891, 2.1737, 2.4274, 2.5138, 2.5933, 2.9659, 2.9294, 2.9108, 2.9282, 2.9981, 3.1949, 3.4006, 3.3359, 3.5804, 3.7884, 3.9406, 3.9533, 3.9687, 4.0032, 3.9574, 3.8355, 3.6829, 3.5993, 3.5329, 3.4371, 3.3828, 3.403, 3.4243, 3.3789, 3.2636, 3.3967, 3.1962, 3.1147, 3.175, 3.2425, 3.6296, 4.1449, 4.0723, 4.375, 4.4478, 4.1667, 3.8914, 4.1274, 3.8709, 3.6104, 3.4191, 3.4132, 3.388, 3.3338, 3.2013, 3.423, 3.2246, 3.2591, 3.2962, 3.3661, 3.3853, 3.4756, 3.5506, 3.6244, 3.7258, 3.8081, 3.7846, 3.7539, 3.6726, 3.5558, 3.3905, 3.2232, 3.2206, 3.3739, 3.2501, 3.0041, 2.8303, 2.6136, 2.482, 2.3703, 2.2257, 2.1304, 1.9568, 1.7519, 1.9317, 1.5821, 1.2826, 1.1067, 0.9306, 0.8589, 0.6842, 0.5557, 0.5919, 0.5082, 0.4376, 0.3132, 0.9194, 0.1047, 0.0276, 0.0, 0.0, 0.0, 0.0, 1.0934, 1.2315, 1.4586, 0.9929, 1.3004, 1.4989, 1.951, 1.8181, 2.2771, 2.6549, 3.0418, 3.2065, 3.7575, 4.0056, 4.8049, 5.6029, 6.2287, 4.7653, 5.1715, 4.8228, 5.25, 4.481, 3.8091, 3.7317, 3.3099, 2.9829, 3.2998, 3.5465, 3.8765, 3.8866, 4.3317, 4.5521, 5.4701, 5.6609, 5.9418, 6.3406, 5.9988, 7.2937, 7.5882, 8.1428, 8.4392, 8.2486, 8.1789, 7.4695, 7.3267, 6.3273, 5.7409, 5.6678, 5.2762, 4.4085, 3.7704, 3.5724, 4.1023, 3.6022, 4.1666, 4.1473, 3.6073, 4.1395, 3.9777, 3.6691, 3.4938, 3.3837, 3.4139, 3.4181, 3.336, 3.5133, 3.5934, 3.6343, 3.5453, 3.6115, 4.1217, 3.5132, 3.5227, 3.993, 3.877, 3.6913, 3.5538, 3.545, 3.6428, 3.8645, 3.7323, 3.6416, 3.8424, 4.0665, 3.9818, 3.997, 3.963, 3.9452, 3.9344, 3.7839, 3.8862, 3.8011, 3.6714, 4.0173, 4.0198, 4.164, 3.5382, 3.5835, 3.6702, 3.9009, 3.9683, 4.0508, 4.105, 4.3915, 4.519, 4.6454, 4.745, 4.8867, 5.0899, 4.8872, 4.0952, 4.4912, 4.6388, 5.3651, 5.2793, 5.3949, 5.4044, 5.4685, 4.7311, 5.2595, 5.5473, 5.7519, 5.8282, 5.0342, 5.7581, 5.9741, 5.9185, 5.8854, 5.8214, 5.6721, 5.2651, 5.0794, 4.8734, 4.6919, 4.6893, 4.7897, 4.1022, 4.1424, 4.857, 5.0721, 5.2299, 5.1722, 5.3601, 5.3917, 5.3012, 5.1498, 4.8968, 4.8484, 4.5278, 4.4759, 4.2443, 4.2931, 4.4297, 4.4681, 4.3651, 4.2116, 3.9941, 3.8407, 3.57, 3.9133, 3.9159, 3.8821, 3.7375, 3.583, 3.557, 3.5508], "type": "scatter"},
 {"line": {"color": "#1f2933", "width": 1}, "name": "Actual", "x": ["2026-09-04 00:00:00", "2026-09-04 00:10:00", "2026-09-04 00:20:00", "2026-09-04 00:30:00", "2026-09-04 00:40:00", "2026-09-04 00:50:00", "2026-09-04 01:00:00", "2026-09-04 01:10:00", "2026-09-04 01:20:00", "2026-09-04 01:30:00", "2026-09-04 01:40:00", "2026-09-04 01:50:00", "2026-09-04 02:00:00", "2026-09-04 02:10:00", "2026-09-04 02:20:00", "2026-09-04 02:30:00", "2026-09-04 02:40:00", "2026-09-04 02:50:00", "2026-09-04 03:00:00", "2026-09-04 03:10:00", "2026-09-04 03:20:00", "2026-09-04 03:30:00", "2026-09-04 03:40:00", "2026-09-04 03:50:00", "2026-09-04 04:00:00", "2026-09-04 04:10:00", "2026-09-04 04:20:00", "2026-09-04 04:30:00", "2026-09-04 04:40:00", "2026-09-04 04:50:00", "2026-09-04 05:00:00", "2026-09-04 05:10:00", "2026-09-04 05:20:00", "2026-09-04 05:30:00", "2026-09-04 05:40:00", "2026-09-04 05:50:00", "2026-09-04 06:00:00", "2026-09-04 06:10:00", "2026-09-04 06:20:00", "2026-09-04 06:30:00", "2026-09-04 06:40:00", "2026-09-04 06:50:00", "2026-09-04 07:00:00", "2026-09-04 07:10:00", "2026-09-04 07:20:00", "2026-09-04 07:30:00", "2026-09-04 07:40:00", "2026-09-04 07:50:00", "2026-09-04 08:00:00", "2026-09-04 08:10:00", "2026-09-04 08:20:00", "2026-09-04 08:30:00", "2026-09-04 08:40:00", "2026-09-04 08:50:00", "2026-09-04 09:00:00", "2026-09-04 09:10:00", "2026-09-04 09:20:00", "2026-09-04 09:30:00", "2026-09-04 09:40:00", "2026-09-04 09:50:00", "2026-09-04 10:00:00", "2026-09-04 10:10:00", "2026-09-04 10:20:00", "2026-09-04 10:30:00", "2026-09-04 10:40:00", "2026-09-04 10:50:00", "2026-09-04 11:00:00", "2026-09-04 11:10:00", "2026-09-04 11:20:00", "2026-09-04 11:30:00", "2026-09-04 11:40:00", "2026-09-04 11:50:00", "2026-09-04 12:00:00", "2026-09-04 12:10:00", "2026-09-04 12:20:00", "2026-09-04 12:30:00", "2026-09-04 12:40:00", "2026-09-04 12:50:00", "2026-09-04 13:00:00", "2026-09-04 13:10:00", "2026-09-04 13:20:00", "2026-09-04 13:30:00", "2026-09-04 13:40:00", "2026-09-04 13:50:00", "2026-09-04 14:00:00", "2026-09-04 14:10:00", "2026-09-04 14:20:00", "2026-09-04 14:30:00", "2026-09-04 14:40:00", "2026-09-04 14:50:00", "2026-09-04 15:00:00", "2026-09-04 15:10:00", "2026-09-04 15:20:00", "2026-09-04 15:30:00", "2026-09-04 15:40:00", "2026-09-04 15:50:00", "2026-09-04 16:00:00", "2026-09-04 16:10:00", "2026-09-04 16:20:00", "2026-09-04 16:30:00", "2026-09-04 16:40:00", "2026-09-04 16:50:00", "2026-09-04 17:00:00", "2026-09-04 17:10:00", "2026-09-04 17:20:00", "2026-09-04 17:30:00", "2026-09-04 17:40:00", "2026-09-04 17:50:00", "2026-09-04 18:00:00", "2026-09-04 18:10:00", "2026-09-04 18:20:00", "2026-09-04 18:30:00", "2026-09-04 18:40:00", "2026-09-04 18:50:00", "2026-09-04 19:00:00", "2026-09-04 19:10:00", "2026-09-04 19:20:00", "2026-09-04 19:30:00", "2026-09-04 19:40:00", "2026-09-04 19:50:00", "2026-09-04 20:00:00", "2026-09-04 20:10:00", "2026-09-04 20:20:00", "2026-09-04 20:30:00", "2026-09-04 20:40:00", "2026-09-04 20:50:00", "2026-09-04 21:00:00", "2026-09-04 21:10:00", "2026-09-04 21:20:00", "2026-09-04 21:30:00", "2026-09-04 21:40:00", "2026-09-04 21:50:00", "2026-09-04 22:00:00", "2026-09-04 22:10:00", "2026-09-04 22:20:00", "2026-09-04 22:30:00", "2026-09-04 22:40:00", "2026-09-04 22:50:00", "2026-09-04 23:00:00", "2026-09-04 23:10:00", "2026-09-04 23:20:00", "2026-09-04 23:30:00", "2026-09-04 23:40:00", "2026-09-04 23:50:00", "2026-09-05 00:00:00", "2026-09-05 00:10:00", "2026-09-05 00:20:00", "2026-09-05 00:30:00", "2026-09-05 00:40:00", "2026-09-05 00:50:00", "2026-09-05 01:00:00", "2026-09-05 01:10:00", "2026-09-05 01:20:00", "2026-09-05 01:30:00", "2026-09-05 01:40:00", "2026-09-05 01:50:00", "2026-09-05 02:00:00", "2026-09-05 02:10:00", "2026-09-05 02:20:00", "2026-09-05 02:30:00", "2026-09-05 02:40:00", "2026-09-05 02:50:00", "2026-09-05 03:00:00", "2026-09-05 03:10:00", "2026-09-05 03:20:00", "2026-09-05 03:30:00", "2026-09-05 03:40:00", "2026-09-05 03:50:00", "2026-09-05 04:00:00", "2026-09-05 04:10:00", "2026-09-05 04:20:00", "2026-09-05 04:30:00", "2026-09-05 04:40:00", "2026-09-05 04:50:00", "2026-09-05 05:00:00", "2026-09-05 05:10:00", "2026-09-05 05:20:00", "2026-09-05 05:30:00", "2026-09-05 05:40:00", "2026-09-05 05:50:00", "2026-09-05 06:00:00", "2026-09-05 06:10:00", "2026-09-05 06:20:00", "2026-09-05 06:30:00", "2026-09-05 06:40:00", "2026-09-05 06:50:00", "2026-09-05 07:00:00", "2026-09-05 07:10:00", "2026-09-05 07:20:00", "2026-09-05 07:30:00", "2026-09-05 07:40:00", "2026-09-05 07:50:00", "2026-09-05 08:00:00", "2026-09-05 08:10:00", "2026-09-05 08:20:00", "2026-09-05 08:30:00", "2026-09-05 08:40:00", "2026-09-05 08:50:00", "2026-09-05 09:00:00", "2026-09-05 09:10:00", "2026-09-05 09:20:00", "2026-09-05 09:30:00", "2026-09-05 09:40:00", "2026-09-05 09:50:00", "2026-09-05 10:00:00", "2026-09-05 10:10:00", "2026-09-05 10:20:00", "2026-09-05 10:30:00", "2026-09-05 10:40:00", "2026-09-05 10:50:00", "2026-09-05 11:00:00", "2026-09-05 11:10:00", "2026-09-05 11:20:00", "2026-09-05 11:30:00", "2026-09-05 11:40:00", "2026-09-05 11:50:00", "2026-09-05 12:00:00", "2026-09-05 12:10:00", "2026-09-05 12:20:00", "2026-09-05 12:30:00", "2026-09-05 12:40:00", "2026-09-05 12:50:00", "2026-09-05 13:00:00", "2026-09-05 13:10:00", "2026-09-05 13:20:00", "2026-09-05 13:30:00", "2026-09-05 13:40:00", "2026-09-05 13:50:00", "2026-09-05 14:00:00", "2026-09-05 14:10:00", "2026-09-05 14:20:00", "2026-09-05 14:30:00", "2026-09-05 14:40:00", "2026-09-05 14:50:00", "2026-09-05 15:00:00", "2026-09-05 15:10:00", "2026-09-05 15:20:00", "2026-09-05 15:30:00", "2026-09-05 15:40:00", "2026-09-05 15:50:00", "2026-09-05 16:00:00", "2026-09-05 16:10:00", "2026-09-05 16:20:00", "2026-09-05 16:30:00", "2026-09-05 16:40:00", "2026-09-05 16:50:00", "2026-09-05 17:00:00", "2026-09-05 17:10:00", "2026-09-05 17:20:00", "2026-09-05 17:30:00", "2026-09-05 17:40:00", "2026-09-05 17:50:00", "2026-09-05 18:00:00", "2026-09-05 18:10:00", "2026-09-05 18:20:00", "2026-09-05 18:30:00", "2026-09-05 18:40:00", "2026-09-05 18:50:00", "2026-09-05 19:00:00", "2026-09-05 19:10:00", "2026-09-05 19:20:00", "2026-09-05 19:30:00", "2026-09-05 19:40:00", "2026-09-05 19:50:00", "2026-09-05 20:00:00", "2026-09-05 20:10:00", "2026-09-05 20:20:00", "2026-09-05 20:30:00", "2026-09-05 20:40:00", "2026-09-05 20:50:00", "2026-09-05 21:00:00", "2026-09-05 21:10:00", "2026-09-05 21:20:00", "2026-09-05 21:30:00", "2026-09-05 21:40:00", "2026-09-05 21:50:00", "2026-09-05 22:00:00", "2026-09-05 22:10:00", "2026-09-05 22:20:00", "2026-09-05 22:30:00", "2026-09-05 22:40:00", "2026-09-05 22:50:00", "2026-09-05 23:00:00", "2026-09-05 23:10:00", "2026-09-05 23:20:00", "2026-09-05 23:30:00", "2026-09-05 23:40:00", "2026-09-05 23:50:00", "2026-09-06 00:00:00", "2026-09-06 00:10:00", "2026-09-06 00:20:00", "2026-09-06 00:30:00", "2026-09-06 00:40:00", "2026-09-06 00:50:00", "2026-09-06 01:00:00", "2026-09-06 01:10:00", "2026-09-06 01:20:00", "2026-09-06 01:30:00", "2026-09-06 01:40:00", "2026-09-06 01:50:00", "2026-09-06 02:00:00", "2026-09-06 02:10:00", "2026-09-06 02:20:00", "2026-09-06 02:30:00", "2026-09-06 02:40:00", "2026-09-06 02:50:00", "2026-09-06 03:00:00", "2026-09-06 03:10:00", "2026-09-06 03:20:00", "2026-09-06 03:30:00", "2026-09-06 03:40:00", "2026-09-06 03:50:00", "2026-09-06 04:00:00", "2026-09-06 04:10:00", "2026-09-06 04:20:00", "2026-09-06 04:30:00", "2026-09-06 04:40:00", "2026-09-06 04:50:00", "2026-09-06 05:00:00", "2026-09-06 05:10:00", "2026-09-06 05:20:00", "2026-09-06 05:30:00", "2026-09-06 05:40:00", "2026-09-06 05:50:00", "2026-09-06 06:00:00", "2026-09-06 06:10:00", "2026-09-06 06:20:00", "2026-09-06 06:30:00", "2026-09-06 06:40:00", "2026-09-06 06:50:00", "2026-09-06 07:00:00", "2026-09-06 07:10:00", "2026-09-06 07:20:00", "2026-09-06 07:30:00", "2026-09-06 07:40:00", "2026-09-06 07:50:00", "2026-09-06 08:00:00", "2026-09-06 08:10:00", "2026-09-06 08:20:00", "2026-09-06 08:30:00", "2026-09-06 08:40:00", "2026-09-06 08:50:00", "2026-09-06 09:00:00", "2026-09-06 09:10:00", "2026-09-06 09:20:00", "2026-09-06 09:30:00", "2026-09-06 09:40:00", "2026-09-06 09:50:00", "2026-09-06 10:00:00", "2026-09-06 10:10:00", "2026-09-06 10:20:00", "2026-09-06 10:30:00", "2026-09-06 10:40:00", "2026-09-06 10:50:00", "2026-09-06 11:00:00", "2026-09-06 11:10:00", "2026-09-06 11:20:00", "2026-09-06 11:30:00", "2026-09-06 11:40:00", "2026-09-06 11:50:00", "2026-09-06 12:00:00", "2026-09-06 12:10:00", "2026-09-06 12:20:00", "2026-09-06 12:30:00", "2026-09-06 12:40:00", "2026-09-06 12:50:00", "2026-09-06 13:00:00", "2026-09-06 13:10:00", "2026-09-06 13:20:00", "2026-09-06 13:30:00", "2026-09-06 13:40:00", "2026-09-06 13:50:00", "2026-09-06 14:00:00", "2026-09-06 14:10:00", "2026-09-06 14:20:00", "2026-09-06 14:30:00", "2026-09-06 14:40:00", "2026-09-06 14:50:00", "2026-09-06 15:00:00", "2026-09-06 15:10:00", "2026-09-06 15:20:00", "2026-09-06 15:30:00", "2026-09-06 15:40:00", "2026-09-06 15:50:00", "2026-09-06 16:00:00", "2026-09-06 16:10:00", "2026-09-06 16:20:00", "2026-09-06 16:30:00", "2026-09-06 16:40:00", "2026-09-06 16:50:00", "2026-09-06 17:00:00", "2026-09-06 17:10:00", "2026-09-06 17:20:00", "2026-09-06 17:30:00", "2026-09-06 17:40:00", "2026-09-06 17:50:00", "2026-09-06 18:00:00", "2026-09-06 18:10:00", "2026-09-06 18:20:00", "2026-09-06 18:30:00", "2026-09-06 18:40:00", "2026-09-06 18:50:00", "2026-09-06 19:00:00", "2026-09-06 19:10:00", "2026-09-06 19:20:00", "2026-09-06 19:30:00", "2026-09-06 19:40:00", "2026-09-06 19:50:00", "2026-09-06 20:00:00", "2026-09-06 20:10:00", "2026-09-06 20:20:00", "2026-09-06 20:30:00", "2026-09-06 20:40:00", "2026-09-06 20:50:00", "2026-09-06 21:00:00", "2026-09-06 21:10:00", "2026-09-06 21:20:00", "2026-09-06 21:30:00", "2026-09-06 21:40:00", "2026-09-06 21:50:00", "2026-09-06 22:00:00", "2026-09-06 22:10:00", "2026-09-06 22:20:00", "2026-09-06 22:30:00", "2026-09-06 22:40:00", "2026-09-06 22:50:00", "2026-09-06 23:00:00", "2026-09-06 23:10:00", "2026-09-06 23:20:00", "2026-09-06 23:30:00", "2026-09-06 23:40:00", "2026-09-06 23:50:00", "2026-09-07 00:00:00", "2026-09-07 00:10:00", "2026-09-07 00:20:00", "2026-09-07 00:30:00", "2026-09-07 00:40:00", "2026-09-07 00:50:00", "2026-09-07 01:00:00", "2026-09-07 01:10:00", "2026-09-07 01:20:00", "2026-09-07 01:30:00", "2026-09-07 01:40:00", "2026-09-07 01:50:00", "2026-09-07 02:00:00", "2026-09-07 02:10:00", "2026-09-07 02:20:00", "2026-09-07 02:30:00", "2026-09-07 02:40:00", "2026-09-07 02:50:00", "2026-09-07 03:00:00", "2026-09-07 03:10:00", "2026-09-07 03:20:00", "2026-09-07 03:30:00", "2026-09-07 03:40:00", "2026-09-07 03:50:00", "2026-09-07 04:00:00", "2026-09-07 04:10:00", "2026-09-07 04:20:00", "2026-09-07 04:30:00", "2026-09-07 04:40:00", "2026-09-07 04:50:00", "2026-09-07 05:00:00", "2026-09-07 05:10:00", "2026-09-07 05:20:00", "2026-09-07 05:30:00", "2026-09-07 05:40:00", "2026-09-07 05:50:00", "2026-09-07 06:00:00", "2026-09-07 06:10:00", "2026-09-07 06:20:00", "2026-09-07 06:30:00", "2026-09-07 06:40:00", "2026-09-07 06:50:00", "2026-09-07 07:00:00", "2026-09-07 07:10:00", "2026-09-07 07:20:00", "2026-09-07 07:30:00", "2026-09-07 07:40:00", "2026-09-07 07:50:00", "2026-09-07 08:00:00", "2026-09-07 08:10:00", "2026-09-07 08:20:00", "2026-09-07 08:30:00", "2026-09-07 08:40:00", "2026-09-07 08:50:00", "2026-09-07 09:00:00", "2026-09-07 09:10:00", "2026-09-07 09:20:00", "2026-09-07 09:30:00", "2026-09-07 09:40:00", "2026-09-07 09:50:00", "2026-09-07 10:00:00", "2026-09-07 10:10:00", "2026-09-07 10:20:00", "2026-09-07 10:30:00", "2026-09-07 10:40:00", "2026-09-07 10:50:00", "2026-09-07 11:00:00", "2026-09-07 11:10:00", "2026-09-07 11:20:00", "2026-09-07 11:30:00", "2026-09-07 11:40:00", "2026-09-07 11:50:00", "2026-09-07 12:00:00", "2026-09-07 12:10:00", "2026-09-07 12:20:00", "2026-09-07 12:30:00", "2026-09-07 12:40:00", "2026-09-07 12:50:00", "2026-09-07 13:00:00", "2026-09-07 13:10:00", "2026-09-07 13:20:00", "2026-09-07 13:30:00", "2026-09-07 13:40:00", "2026-09-07 13:50:00", "2026-09-07 14:00:00", "2026-09-07 14:10:00", "2026-09-07 14:20:00", "2026-09-07 14:30:00", "2026-09-07 14:40:00", "2026-09-07 14:50:00", "2026-09-07 15:00:00", "2026-09-07 15:10:00", "2026-09-07 15:20:00", "2026-09-07 15:30:00", "2026-09-07 15:40:00", "2026-09-07 15:50:00", "2026-09-07 16:00:00", "2026-09-07 16:10:00", "2026-09-07 16:20:00", "2026-09-07 16:30:00", "2026-09-07 16:40:00", "2026-09-07 16:50:00", "2026-09-07 17:00:00", "2026-09-07 17:10:00", "2026-09-07 17:20:00", "2026-09-07 17:30:00", "2026-09-07 17:40:00", "2026-09-07 17:50:00", "2026-09-07 18:00:00", "2026-09-07 18:10:00", "2026-09-07 18:20:00", "2026-09-07 18:30:00", "2026-09-07 18:40:00", "2026-09-07 18:50:00", "2026-09-07 19:00:00", "2026-09-07 19:10:00", "2026-09-07 19:20:00", "2026-09-07 19:30:00", "2026-09-07 19:40:00", "2026-09-07 19:50:00", "2026-09-07 20:00:00", "2026-09-07 20:10:00", "2026-09-07 20:20:00", "2026-09-07 20:30:00", "2026-09-07 20:40:00", "2026-09-07 20:50:00", "2026-09-07 21:00:00", "2026-09-07 21:10:00", "2026-09-07 21:20:00", "2026-09-07 21:30:00", "2026-09-07 21:40:00", "2026-09-07 21:50:00", "2026-09-07 22:00:00", "2026-09-07 22:10:00", "2026-09-07 22:20:00", "2026-09-07 22:30:00", "2026-09-07 22:40:00", "2026-09-07 22:50:00", "2026-09-07 23:00:00", "2026-09-07 23:10:00", "2026-09-07 23:20:00", "2026-09-07 23:30:00", "2026-09-07 23:40:00", "2026-09-07 23:50:00", "2026-09-08 00:00:00", "2026-09-08 00:10:00", "2026-09-08 00:20:00", "2026-09-08 00:30:00", "2026-09-08 00:40:00", "2026-09-08 00:50:00", "2026-09-08 01:00:00", "2026-09-08 01:10:00", "2026-09-08 01:20:00", "2026-09-08 01:30:00", "2026-09-08 01:40:00", "2026-09-08 01:50:00", "2026-09-08 02:00:00", "2026-09-08 02:10:00", "2026-09-08 02:20:00", "2026-09-08 02:30:00", "2026-09-08 02:40:00", "2026-09-08 02:50:00", "2026-09-08 03:00:00", "2026-09-08 03:10:00", "2026-09-08 03:20:00", "2026-09-08 03:30:00", "2026-09-08 03:40:00", "2026-09-08 03:50:00", "2026-09-08 04:00:00", "2026-09-08 04:10:00", "2026-09-08 04:20:00", "2026-09-08 04:30:00", "2026-09-08 04:40:00", "2026-09-08 04:50:00", "2026-09-08 05:00:00", "2026-09-08 05:10:00", "2026-09-08 05:20:00", "2026-09-08 05:30:00", "2026-09-08 05:40:00", "2026-09-08 05:50:00", "2026-09-08 06:00:00", "2026-09-08 06:10:00", "2026-09-08 06:20:00", "2026-09-08 06:30:00", "2026-09-08 06:40:00", "2026-09-08 06:50:00", "2026-09-08 07:00:00", "2026-09-08 07:10:00", "2026-09-08 07:20:00", "2026-09-08 07:30:00", "2026-09-08 07:40:00", "2026-09-08 07:50:00", "2026-09-08 08:00:00", "2026-09-08 08:10:00", "2026-09-08 08:20:00", "2026-09-08 08:30:00", "2026-09-08 08:40:00", "2026-09-08 08:50:00", "2026-09-08 09:00:00", "2026-09-08 09:10:00", "2026-09-08 09:20:00", "2026-09-08 09:30:00", "2026-09-08 09:40:00", "2026-09-08 09:50:00", "2026-09-08 10:00:00", "2026-09-08 10:10:00", "2026-09-08 10:20:00", "2026-09-08 10:30:00", "2026-09-08 10:40:00", "2026-09-08 10:50:00", "2026-09-08 11:00:00", "2026-09-08 11:10:00", "2026-09-08 11:20:00", "2026-09-08 11:30:00", "2026-09-08 11:40:00", "2026-09-08 11:50:00", "2026-09-08 12:00:00", "2026-09-08 12:10:00", "2026-09-08 12:20:00", "2026-09-08 12:30:00", "2026-09-08 12:40:00", "2026-09-08 12:50:00", "2026-09-08 13:00:00", "2026-09-08 13:10:00", "2026-09-08 13:20:00", "2026-09-08 13:30:00", "2026-09-08 13:40:00", "2026-09-08 13:50:00", "2026-09-08 14:00:00", "2026-09-08 14:10:00", "2026-09-08 14:20:00", "2026-09-08 14:30:00", "2026-09-08 14:40:00", "2026-09-08 14:50:00", "2026-09-08 15:00:00", "2026-09-08 15:10:00", "2026-09-08 15:20:00", "2026-09-08 15:30:00", "2026-09-08 15:40:00", "2026-09-08 15:50:00", "2026-09-08 16:00:00", "2026-09-08 16:10:00", "2026-09-08 16:20:00", "2026-09-08 16:30:00", "2026-09-08 16:40:00", "2026-09-08 16:50:00", "2026-09-08 17:00:00", "2026-09-08 17:10:00", "2026-09-08 17:20:00", "2026-09-08 17:30:00", "2026-09-08 17:40:00", "2026-09-08 17:50:00", "2026-09-08 18:00:00", "2026-09-08 18:10:00", "2026-09-08 18:20:00", "2026-09-08 18:30:00", "2026-09-08 18:40:00", "2026-09-08 18:50:00", "2026-09-08 19:00:00", "2026-09-08 19:10:00", "2026-09-08 19:20:00", "2026-09-08 19:30:00", "2026-09-08 19:40:00", "2026-09-08 19:50:00", "2026-09-08 20:00:00", "2026-09-08 20:10:00", "2026-09-08 20:20:00", "2026-09-08 20:30:00", "2026-09-08 20:40:00", "2026-09-08 20:50:00", "2026-09-08 21:00:00", "2026-09-08 21:10:00", "2026-09-08 21:20:00", "2026-09-08 21:30:00", "2026-09-08 21:40:00", "2026-09-08 21:50:00", "2026-09-08 22:00:00", "2026-09-08 22:10:00", "2026-09-08 22:20:00", "2026-09-08 22:30:00", "2026-09-08 22:40:00", "2026-09-08 22:50:00", "2026-09-08 23:00:00", "2026-09-08 23:10:00", "2026-09-08 23:20:00", "2026-09-08 23:30:00", "2026-09-08 23:40:00", "2026-09-08 23:50:00", "2026-09-09 00:00:00", "2026-09-09 00:10:00", "2026-09-09 00:20:00", "2026-09-09 00:30:00", "2026-09-09 00:40:00", "2026-09-09 00:50:00", "2026-09-09 01:00:00", "2026-09-09 01:10:00", "2026-09-09 01:20:00", "2026-09-09 01:30:00", "2026-09-09 01:40:00", "2026-09-09 01:50:00", "2026-09-09 02:00:00", "2026-09-09 02:10:00", "2026-09-09 02:20:00", "2026-09-09 02:30:00", "2026-09-09 02:40:00", "2026-09-09 02:50:00", "2026-09-09 03:00:00", "2026-09-09 03:10:00", "2026-09-09 03:20:00", "2026-09-09 03:30:00", "2026-09-09 03:40:00", "2026-09-09 03:50:00", "2026-09-09 04:00:00", "2026-09-09 04:10:00", "2026-09-09 04:20:00", "2026-09-09 04:30:00", "2026-09-09 04:40:00", "2026-09-09 04:50:00", "2026-09-09 05:00:00", "2026-09-09 05:10:00", "2026-09-09 05:20:00", "2026-09-09 05:30:00", "2026-09-09 05:40:00", "2026-09-09 05:50:00", "2026-09-09 06:00:00", "2026-09-09 06:10:00", "2026-09-09 06:20:00", "2026-09-09 06:30:00", "2026-09-09 06:40:00", "2026-09-09 06:50:00", "2026-09-09 07:00:00", "2026-09-09 07:10:00", "2026-09-09 07:20:00", "2026-09-09 07:30:00", "2026-09-09 07:40:00", "2026-09-09 07:50:00", "2026-09-09 08:00:00", "2026-09-09 08:10:00", "2026-09-09 08:20:00", "2026-09-09 08:30:00", "2026-09-09 08:40:00", "2026-09-09 08:50:00", "2026-09-09 09:00:00", "2026-09-09 09:10:00", "2026-09-09 09:20:00", "2026-09-09 09:30:00", "2026-09-09 09:40:00", "2026-09-09 09:50:00", "2026-09-09 10:00:00", "2026-09-09 10:10:00", "2026-09-09 10:20:00", "2026-09-09 10:30:00", "2026-09-09 10:40:00", "2026-09-09 10:50:00", "2026-09-09 11:00:00", "2026-09-09 11:10:00", "2026-09-09 11:20:00", "2026-09-09 11:30:00", "2026-09-09 11:40:00", "2026-09-09 11:50:00", "2026-09-09 12:00:00", "2026-09-09 12:10:00", "2026-09-09 12:20:00", "2026-09-09 12:30:00", "2026-09-09 12:40:00", "2026-09-09 12:50:00", "2026-09-09 13:00:00", "2026-09-09 13:10:00", "2026-09-09 13:20:00", "2026-09-09 13:30:00", "2026-09-09 13:40:00", "2026-09-09 13:50:00", "2026-09-09 14:00:00", "2026-09-09 14:10:00", "2026-09-09 14:20:00", "2026-09-09 14:30:00", "2026-09-09 14:40:00", "2026-09-09 14:50:00", "2026-09-09 15:00:00", "2026-09-09 15:10:00", "2026-09-09 15:20:00", "2026-09-09 15:30:00", "2026-09-09 15:40:00", "2026-09-09 15:50:00", "2026-09-09 16:00:00", "2026-09-09 16:10:00", "2026-09-09 16:20:00", "2026-09-09 16:30:00", "2026-09-09 16:40:00", "2026-09-09 16:50:00", "2026-09-09 17:00:00", "2026-09-09 17:10:00", "2026-09-09 17:20:00", "2026-09-09 17:30:00", "2026-09-09 17:40:00", "2026-09-09 17:50:00", "2026-09-09 18:00:00", "2026-09-09 18:10:00", "2026-09-09 18:20:00", "2026-09-09 18:30:00", "2026-09-09 18:40:00", "2026-09-09 18:50:00", "2026-09-09 19:00:00", "2026-09-09 19:10:00", "2026-09-09 19:20:00", "2026-09-09 19:30:00", "2026-09-09 19:40:00", "2026-09-09 19:50:00", "2026-09-09 20:00:00", "2026-09-09 20:10:00", "2026-09-09 20:20:00", "2026-09-09 20:30:00", "2026-09-09 20:40:00", "2026-09-09 20:50:00", "2026-09-09 21:00:00", "2026-09-09 21:10:00", "2026-09-09 21:20:00", "2026-09-09 21:30:00", "2026-09-09 21:40:00", "2026-09-09 21:50:00", "2026-09-09 22:00:00", "2026-09-09 22:10:00", "2026-09-09 22:20:00", "2026-09-09 22:30:00", "2026-09-09 22:40:00", "2026-09-09 22:50:00", "2026-09-09 23:00:00", "2026-09-09 23:10:00", "2026-09-09 23:20:00", "2026-09-09 23:30:00", "2026-09-09 23:40:00", "2026-09-09 23:50:00"], "y": [3.9278, 5.2041, 4.6809, 5.585, 5.5114, 5.6996, 5.886, 5.9221, 6.5936, 6.138, 7.0113, 7.3178, 7.7373, 7.9904, 8.1559, 8.4458, 8.3708, 7.4484, 7.1222, 6.924, 7.361, 7.679, 7.9407, 8.2942, 7.6303, 7.6248, 8.6528, 9.0793, 8.0252, 7.6482, 7.7333, 7.3869, 8.0545, 8.092, 7.7149, 8.2324, 8.1963, 8.633, 8.1968, 8.9359, 8.129, 8.2594, 8.3456, 7.853, 8.6297, 8.6722, 8.3849, 7.5013, 8.2445, 8.0088, 9.152, 9.5284, 10.0978, 9.2931, 8.1556, 9.9371, 9.8049, 9.706, 11.2375, 10.5685, 12.2381, 11.6741, 11.9456, 11.2788, 10.9802, 11.3466, 10.5603, 11.4819, 10.5444, 9.2283, 11.1975, 11.6765, 12.1324, 11.8125, 12.8268, 12.2751, 10.5879, 12.9719, 13.0914, 13.4755, 13.7203, 13.3163, 15.2284, 16.5443, 14.3282, 13.1504, 15.7717, 13.1189, 11.5619, 13.5535, 10.7562, 10.6111, 9.3182, 8.6173, 8.4571, 12.4673, 10.8461, 8.6232, 9.7821, 9.9551, 7.8357, 8.9892, 9.9488, 10.2002, 8.2402, 9.5447, 8.427, 9.8114, 8.8466, 6.4665, 5.6877, 7.7955, 7.8264, 7.232, 7.0647, 6.2587, 6.5793, 6.7482, 6.4803, 6.1771, 6.1244, 6.1643, 5.0723, 5.4025, 5.7311, 5.891, 6.3147, 5.4059, 4.8825, 4.8383, 4.6922, 4.8842, 4.5641, 4.4381, 4.752, 4.6259, 5.1477, 5.2985, 5.5882, 5.4369, 5.9084, 5.8329, 6.4668, 6.1094, 6.8189, 6.1, 6.4634, 7.173, 6.3574, 6.2481, 6.3901, 7.2364, 7.1088, 8.7557, 7.3756, 8.0778, 7.2568, 7.7923, 7.7123, 7.1739, 6.0572, 6.299, 6.2543, 5.7465, 6.1771, 6.9826, 7.6022, 6.9894, 7.4226, 7.1441, 6.5914, 6.65, 6.8523, 6.8743, 7.1023, 6.602, 7.1101, 7.5187, 6.6192, 7.1007, 6.9925, 6.8163, 7.5002, 8.0968, 8.1972, 8.7668, 8.0248, 7.9379, 7.9415, 8.1175, 8.2007, 7.7059, 7.1647, 7.5555, 8.4058, 8.632, 8.7987, 9.5079, 7.7878, 7.738, 9.2277, 8.7534, 7.9713, 7.3613, 8.4037, 8.6876, 8.2237, 8.8923, 10.0213, 8.9721, 8.6313, 9.2743, 8.6087, 11.0695, 9.3612, 10.609, 7.9978, 7.8173, 7.8846, 4.6548, 6.5771, 7.2135, 9.0435, 9.8497, 11.1988, 11.3876, 12.3641, 11.3303, 12.5929, 11.466, 13.3722, 11.958, 11.6142, 10.7931, 10.7584, 11.0638, 11.6497, 12.371, 11.5022, 10.2539, 9.883, 9.6798, 9.3549, 9.8851, 9.5689, 11.1423, 9.7742, 8.1332, 9.3176, 7.3247, 6.1367, 4.7702, 6.6432, 6.8959, 10.7268, 8.4795, 8.5511, 7.1223, 6.3764, 5.4356, 5.1731, 4.7528, 4.7685, 4.429, 4.6124, 4.4695, 4.4606, 4.2319, 4.0243, 3.5385, 5.9664, 5.5409, 4.8668, 4.6586, 4.4463, 4.9811, 5.7843, 5.5896, 5.426, 4.6425, 6.1823, 6.1602, 5.8272, 5.8831, 5.4036, 4.4218, 4.4828, 4.079, 4.3501, 5.1144, 4.5693, 5.2841, 4.5281, 4.6191, 5.0501, 4.4601, 3.9086, 4.1169, 4.1548, 3.7854, 3.9032, 4.0239, 4.6738, 4.6099, 5.034, 4.6595, 4.1656, 3.9799, 5.3281, 5.2916, 4.4756, 4.4965, 4.5592, 4.753, 5.3885, 5.2674, 6.234, 5.4781, 6.1376, 5.4823, 6.1728, 5.6472, 5.7414, 5.523, 6.0836, 5.4948, 5.7032, 5.2421, 4.5744, 4.5287, 4.1548, 4.3626, 4.1463, 4.1609, 3.933, 4.007, 3.9322, 4.1391, 3.7918, 3.6648, 3.7176, 3.4585, 3.5273, 3.3648, 3.4085, 2.8701, 2.8594, 2.6079, 2.6634, 2.7718, 2.0909, 2.668, 2.7065, 2.4294, 2.9981, 3.0647, 3.1793, 3.2783, 3.1181, 3.0407, 2.8595, 3.1443, 3.3798, 3.6538, 3.5508, 3.5151, 3.9058, 3.1397, 3.8624, 3.9135, 2.615, 3.1341, 2.8338, 3.2268, 3.9279, 3.981, 3.4947, 2.6699, 3.0649, 3.1221, 3.0584, 3.1884, 2.3568, 1.0506, 2.7359, 3.6084, 3.3547, 2.3765, 2.929, 3.552, 2.6442, 2.9274, 2.4262, 1.6545, 3.3944, 3.3164, 2.1433, 2.357, 2.5612, 1.9458, 2.044, 1.4442, 1.5046, 1.9702, 1.6303, 2.3004, 2.8143, 2.7865, 3.4739, 2.8905, 2.8218, 3.5725, 3.6628, 4.4538, 4.9343, 5.1734, 5.5001, 5.5459, 6.4184, 6.879, 7.3657, 7.6081, 9.0478, 8.8881, 5.7677, 6.3084, 5.9668, 6.6637, 7.2757, 6.8595, 7.8151, 8.2878, 6.5886, 6.1354, 4.6413, 5.1843, 4.7589, 4.3074, 4.433, 4.8558, 5.3929, 5.9943, 5.4057, 6.116, 5.8048, 4.6119, 5.275, 4.6442, 2.7704, 3.4598, 2.6168, 2.9027, 3.0192, 3.2387, 3.6887, 3.3747, 3.6431, 4.254, 4.8567, 5.5144, 5.9663, 5.6692, 6.2063, 6.3516, 5.9926, 5.9574, 6.0872, 6.39, 5.8129, 4.7494, 5.3955, 5.4565, 5.904, 4.7933, 5.0199, 5.1727, 5.4018, 5.7122, 5.8869, 6.5576, 6.819, 6.6491, 6.2896, 6.0832, 6.1669, 5.59, 5.9416, 5.8009, 5.5098, 5.5456, 5.8157, 5.2742, 4.8385, 5.0774, 4.6154, 5.06, 4.6037, 4.6529, 5.1597, 5.7012, 6.675, 6.2097, 5.6308, 7.1103, 6.4888, 5.0243, 4.2871, 4.1268, 4.5269, 6.4296, 4.4646, 4.9046, 4.6578, 3.779, 5.2491, 5.0092, 4.372, 4.6488, 3.9382, 3.5841, 4.1857, 4.0907, 4.3922, 4.8124, 4.5091, 4.4138, 4.4748, 2.9629, 3.8012, 4.9317, 4.3115, 5.2619, 5.2546, 5.1469, 4.2948, 5.0994, 5.6035, 5.9177, 5.0707, 3.5989, 3.7177, 3.0935, 2.646, 2.2446, 3.0901, 3.163, 2.5919, 2.9447, 2.8156, 3.647, 4.8204, 4.5515, 4.7783, 4.8694, 4.281, 5.043, 5.1959, 5.8227, 5.5658, 5.9826, 5.4074, 5.5716, 4.9847, 5.9358, 6.4135, 5.5017, 5.8237, 5.9451, 5.6741, 6.0301, 5.7967, 5.6067, 5.5243, 5.734, 5.8965, 6.0199, 7.8367, 6.2301, 4.5273, 5.3814, 6.5786, 6.1161, 5.0855, 4.6424, 3.8671, 4.6615, 4.6895, 4.6791, 3.764, 4.3538, 4.1427, 5.1117, 5.1434, 4.5468, 4.3384, 4.1673, 3.7787, 3.9153, 4.9574, 5.2642, 5.7487, 5.8618, 4.9942, 4.7648, 4.9972, 4.9001, 5.3152, 5.9192, 6.3779, 6.6661, 6.0927, 6.0877, 6.3153, 6.2297, 7.3664, 6.7079, 8.4896, 8.2843, 7.315, 5.856, 3.585, 3.982, 4.3586, 4.0018, 3.713, 3.3635, 3.0438, 3.5735, 4.7717, 4.7656, 5.5646, 5.5928, 6.0151, 6.2224, 6.8079, 8.2023, 7.8419, 8.3352, 6.6168, 6.3869, 5.8682, 8.1173, 6.9343, 4.2685, 4.2279, 6.1214, 6.3863, 5.2158, 3.8734, 4.6339, 4.4683, 4.0532, 4.2137, 4.6136, 5.309, 6.8605, 6.3673, 7.6173, 10.1761, 6.937, 6.8042, 5.9643, 5.5303, 4.3524, 6.2086, 5.1087, 5.201, 7.1198, 5.8324, 6.4745, 6.8475, 5.5952, 5.8746, 4.9483, 4.4158, 5.2906, 4.107, 2.9639, 2.4864, 3.1005, 2.4922, 3.2773, 2.5966, 2.2395, 2.4942, 1.9593, 2.3109, 2.1713, 2.2845, 1.6498, 1.2482, 0.731, 0.3964, 1.0125, 1.1503, 0.9508, 1.4281, 1.6053, 2.0085, 2.388, 2.0747, 2.6561, 2.6305, 3.3772, 3.2563, 4.297, 4.2834, 5.3324, 6.0299, 7.062, 5.8906, 6.1271, 7.1921, 8.9428, 8.4437, 8.5277, 5.8468, 4.4583, 3.7524, 4.1112, 5.5875, 3.9645, 3.3491, 2.7631, 2.4689, 4.2853, 5.057, 3.5266, 3.6974, 4.1692, 4.8062, 5.5581, 5.9595, 7.4594, 8.4851, 9.7514, 8.2652, 8.8979, 8.3255, 10.4893, 12.0017, 13.3516, 12.4158, 9.3487, 7.59, 5.9312, 4.7966, 4.8628, 5.6528, 5.1766, 4.9174, 4.9126, 4.5722, 4.4562, 4.7037, 4.7838, 4.7057, 3.9514, 3.3639, 4.7185, 5.3717, 5.1393, 5.3305, 5.1112, 5.0688, 5.4242, 5.6624, 6.633, 6.4989, 7.7205, 8.8025, 7.5682, 7.7916, 6.2751, 7.4542, 5.773, 6.2309, 5.4526, 6.0007, 6.3704, 6.7614, 7.5022, 8.5451, 7.5435, 8.2359, 8.7979, 7.5165, 8.3403, 6.8934, 8.4878, 9.2172, 5.7608, 5.4082, 7.3717, 6.8336, 7.5665, 6.1055, 8.4498, 10.5008, 9.9894, 9.5473, 8.1887, 9.3584, 10.5666, 9.3981, 9.7145, 9.4108, 6.9615, 6.1795, 7.9266, 8.8083, 8.6928, 8.2616, 8.2748, 8.7842, 10.4438, 10.1089, 9.0328, 7.4449, 8.2013, 8.5593, 10.6169, 11.5547, 9.4182, 9.2637, 8.9678, 10.7495, 10.1111, 7.4034, 8.4939, 7.7068, 8.2819, 9.0689, 10.0432, 8.7331, 8.4952, 5.1679, 6.0385, 7.586, 7.9158, 9.5694, 9.5981, 9.4544, 8.6884, 8.6344, 7.0153, 6.2838, 6.0105, 5.183, 4.8138, 5.0254, 4.7206, 4.9572, 4.9181, 4.7206, 5.053, 5.168, 5.4094, 4.4694, 5.2154, 4.9769, 4.6771, 5.1248, 5.7089], "type": "scatter"},
@@ -4169,14 +9198,14 @@ Plotly.newPlot("fig5", [
 },
 {"responsive": true});
 </script>
-<div class="fig" id="fig6"></div>
+<div class="fig" id="fig12"></div>
 <script>
-Plotly.newPlot("fig6", [
-{"hovertemplate": "%{text}<br>power RMSE %{x:.0f} kW<br>|energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#c9ced6", "size": 8}, "mode": "markers", "name": "Other experiments", "text": ["E01_decay14", "E01_decay3", "E01_decay30", "E01_decay7", "E01_window14", "E01_window30", "E01_window7", "E02_smooth120min", "E02_smooth30min", "E02_smooth60min", "E03_power_empirical", "E03_power_gauss", "E04_variance_ratio", "E05_hinges", "E05_log", "E05_sigma_bins", "E05_sqrt", "E06_dir", "E06_dir4", "E06_dir8", "E06_hour", "E06_lags", "E06_pressure", "E06_stddev", "E06_temp", "E07_conformal", "E07_conformal_bins", "E07_gauss_oos", "E09_power_gauss_bins", "E09_power_gauss_bins10", "E09_power_gauss_bins3", "E10_dir8_lags", "E10_dir8_smooth60", "E10_dir_lags", "E11_dir8_lags_bins", "E11_dir8_lags_power", "E11_dir_lags_power", "E12_dir8_smooth30_power"], "x": [737.1254, 736.7042, 736.7598, 737.2451, 741.433, 738.5831, 738.0554, 709.6766, 725.1705, 717.3321, 723.9788, 723.4698, 768.8765, 734.1818, 741.7979, 736.7693, 729.6934, 724.3975, 724.1508, 715.2674, 730.8287, 714.9655, 736.4247, 733.4438, 736.0442, 736.7693, 736.7693, 736.7693, 721.4873, 721.4876, 721.7397, 692.3624, 694.812, 702.1412, 692.3624, 680.0405, 689.9271, 689.6704], "y": [13.9557, 14.3919, 13.8284, 14.1639, 14.578, 14.3281, 14.6871, 14.1635, 13.799, 13.9354, 14.182, 14.8157, 14.3577, 13.9166, 14.8151, 13.7781, 13.8964, 11.8351, 12.3733, 11.8111, 14.0158, 13.798, 13.8572, 14.2797, 13.7809, 13.7781, 13.7781, 13.7781, 14.0328, 14.0338, 14.1509, 11.8286, 11.8234, 11.728, 11.8286, 9.9816, 11.2658, 10.1335], "type": "scatter"},
-{"hovertemplate": "E00_baseline<br>power RMSE %{x:.0f} kW<br>|energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#8896a5", "size": 13}, "mode": "markers+text", "name": "Baseline OLS", "showlegend": false, "text": ["Baseline OLS"], "textposition": "top center", "x": [736.7693], "y": [13.7781], "type": "scatter"},
-{"hovertemplate": "E08_hgb<br>power RMSE %{x:.0f} kW<br>|energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#d9822b", "size": 13}, "mode": "markers+text", "name": "Gradient boosting (black box)", "showlegend": false, "text": ["Gradient boosting (black box)"], "textposition": "bottom center", "x": [700.2397], "y": [10.8206], "type": "scatter"},
-{"hovertemplate": "E08_ridge_refs<br>power RMSE %{x:.0f} kW<br>|energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#7fa6c9", "size": 13}, "mode": "markers+text", "name": "Ridge, more reference sensors", "showlegend": false, "text": ["Ridge, more reference sensors"], "textposition": "top center", "x": [729.4424], "y": [12.8095], "type": "scatter"},
-{"hovertemplate": "E12_dir8_smooth60_power<br>power RMSE %{x:.0f} kW<br>|energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#0b7a75", "size": 13}, "mode": "markers+text", "name": "Final model (transparent)", "showlegend": false, "text": ["Final model (transparent)"], "textposition": "top center", "x": [682.3263], "y": [9.9941], "type": "scatter"}
+Plotly.newPlot("fig12", [
+{"hovertemplate": "%{text}<br>power RMSE %{x:.0f} kW<br>park |energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#c9ced6", "size": 8}, "mode": "markers", "name": "Other experiments", "text": ["E01_decay14", "E01_decay3", "E01_decay30", "E01_decay7", "E01_window14", "E01_window30", "E01_window7", "E02_smooth120min", "E02_smooth30min", "E02_smooth60min", "E03_power_empirical", "E03_power_gauss", "E04_variance_ratio", "E05_hinges", "E05_log", "E05_sigma_bins", "E05_sqrt", "E06_dir", "E06_dir4", "E06_dir8", "E06_hour", "E06_lags", "E06_pressure", "E06_stddev", "E06_temp", "E07_conformal", "E07_conformal_bins", "E07_gauss_oos", "E09_power_gauss_bins", "E09_power_gauss_bins10", "E09_power_gauss_bins3", "E10_dir8_lags", "E10_dir8_smooth60", "E10_dir_lags", "E11_dir8_lags_bins", "E11_dir8_lags_power", "E11_dir_lags_power", "E12_dir8_smooth30_power"], "x": [737.1254, 736.7042, 736.7598, 737.2451, 741.433, 738.5831, 738.0554, 709.6766, 725.1705, 717.3321, 723.9788, 723.4698, 768.8765, 734.1818, 741.7979, 736.7693, 729.6934, 724.3975, 724.1508, 715.2674, 730.8287, 714.9655, 736.4247, 733.4438, 736.0442, 736.7693, 736.7693, 736.7693, 721.4873, 721.4876, 721.7397, 692.3624, 694.812, 702.1412, 692.3624, 680.0405, 689.9271, 689.6704], "y": [11.0756, 11.2253, 10.9967, 11.2029, 11.5825, 11.2183, 11.5816, 11.4803, 10.9667, 11.1594, 9.3436, 9.5572, 10.7356, 10.9782, 11.8518, 10.9721, 10.6903, 10.4354, 11.189, 10.9197, 11.3857, 10.9957, 11.0631, 11.597, 11.0441, 10.9721, 10.9721, 10.9721, 9.0333, 9.0474, 9.109, 11.0242, 11.0589, 10.5355, 11.0242, 8.5625, 8.201, 8.5002], "type": "scatter"},
+{"hovertemplate": "E00_baseline<br>power RMSE %{x:.0f} kW<br>park |energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#8896a5", "size": 13}, "mode": "markers+text", "name": "Baseline OLS", "showlegend": false, "text": ["Baseline OLS"], "textposition": "top center", "x": [736.7693], "y": [10.9721], "type": "scatter"},
+{"hovertemplate": "E08_hgb<br>power RMSE %{x:.0f} kW<br>park |energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#d9822b", "size": 13}, "mode": "markers+text", "name": "Gradient boosting (black box)", "showlegend": false, "text": ["Gradient boosting (black box)"], "textposition": "bottom center", "x": [700.2397], "y": [9.7123], "type": "scatter"},
+{"hovertemplate": "E08_ridge_refs<br>power RMSE %{x:.0f} kW<br>park |energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#7fa6c9", "size": 13}, "mode": "markers+text", "name": "Ridge, more reference sensors", "showlegend": false, "text": ["Ridge, more reference sensors"], "textposition": "top center", "x": [729.4424], "y": [10.4998], "type": "scatter"},
+{"hovertemplate": "E12_dir8_smooth60_power<br>power RMSE %{x:.0f} kW<br>park |energy dev| %{y:.2f} %<extra></extra>", "marker": {"color": "#0b7a75", "size": 13}, "mode": "markers+text", "name": "Final model (transparent)", "showlegend": false, "text": ["Final model (transparent)"], "textposition": "top center", "x": [682.3263], "y": [8.5282], "type": "scatter"}
 ],
 {
  "template": {
@@ -4951,14 +9980,14 @@ Plotly.newPlot("fig6", [
  },
  "yaxis": {
   "title": {
-   "text": "Mean |energy deviation| (%)"
+   "text": "Mean |park energy deviation| (%)"
   },
   "gridcolor": "#e6e9ee",
   "zeroline": false,
   "linecolor": "#e6e9ee"
  },
  "title": {
-  "text": "<b>The transparent final model beats the black box on energy error (10.0 % vs 10.8 %)</b><br><span style='font-size:13px;color:#6b7785'>All experiments: power RMSE vs energy error; highlighted are baseline, gradient boosting, ridge and final model</span>",
+  "text": "<b>The transparent final model beats the black box on park energy error (8.5 % vs 9.7 %)</b><br><span style='font-size:13px;color:#6b7785'>All experiments: power RMSE vs energy error; highlighted are baseline, gradient boosting, ridge and final model</span>",
   "x": 0.0,
   "xanchor": "left",
   "y": 0.95

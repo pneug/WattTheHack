@@ -26,7 +26,7 @@ To add an entry, write a function or class in the registry. Then add a config wi
 - The outage window is never in the fit (`core.fit_predict` asserts this).
 - No feature column may come from park T (`build_X` asserts this).
 - If an extra feature is missing at a step, that step falls back to the park-means OLS, so a prediction is never NaN while H and O are known.
-- Evaluation uses 28 simulated 3-day outages (anchored at 1 Sep, each fitted without itself) plus 4–9 Sep. Decision metric: mean |energy deviation| per turbine-window together with power RMSE. See `experiments/LOG.md`.
+- Evaluation uses 28 simulated 3-day outages (anchored at 1 Sep, each fitted without itself) plus 4–9 Sep. Decision metric: mean |park energy deviation| per outage (the judges score the park total), together with power RMSE. See `experiments/LOG.md`.
 
 ## Current BEST: `E12_dir8_smooth60_power`
 
@@ -36,7 +36,9 @@ To add an entry, write a function or class in the registry. Then add a config wi
 |---|---|---|
 | Wind RMSE (backtest) | 1.261 m/s | 1.200 m/s |
 | Power RMSE (backtest) | 737 kW | 682 kW |
-| Mean \|energy dev\| per turbine and 3 days | 13.8% | 10.0% |
+| Mean \|park energy dev\| per outage (judged) | 11.0% | 8.5% |
+| Park energy bias (mean signed) | -8.5% | +1.4% |
+| Mean \|energy dev\| per turbine (not judged) | 13.8% | 10.0% |
 | Energy bias T1/T2/T3 | -8.6/-5.4/-7.2% | +2.3/+1.5/+2.2% |
 | 95% band coverage | 94.6% | 94.8% |
 | Lost energy 1–3 Sep (hidden) | | 322.4 MWh (95%: 247.1–377.6) |

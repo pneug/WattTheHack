@@ -13,8 +13,8 @@ RESULTS = ROOT / "experiments" / "results.csv"
 LOG = ROOT / "experiments" / "LOG.md"
 START, END = "<!-- leaderboard:start -->", "<!-- leaderboard:end -->"
 
-COLS = [("bt_ws_rmse", "bt ws RMSE", "{:.3f}"), ("bt_p_rmse", "bt P RMSE [kW]", "{:.1f}"),
-        ("bt_abs_edev", "bt mean abs E dev [%]", "{:.2f}"), ("bt_abs_edev_park", "bt park abs E dev [%]", "{:.2f}")]
+COLS = [("bt_abs_edev_park", "bt park abs E dev [%] (judged)", "{:.2f}"), ("bt_ws_rmse", "bt ws RMSE", "{:.3f}"),
+        ("bt_p_rmse", "bt P RMSE [kW]", "{:.1f}"), ("bt_abs_edev", "bt per-turbine abs E dev [%]", "{:.2f}")]
 
 
 def _f(v, fmt) -> str:
@@ -23,7 +23,7 @@ def _f(v, fmt) -> str:
 
 def leaderboard() -> str:
     df = pd.read_csv(RESULTS).sort_values("run_at", kind="stable").groupby("id", as_index=False).last()
-    df = df.sort_values("bt_abs_edev")
+    df = df.sort_values("bt_abs_edev_park")  # judges score the park total
     head = ["id", "change (desc)"] + [c[1] for c in COLS] + ["T1/T2/T3 bias [%]", "val ws RMSE",
                                                              "val park E dev [%]", "95% cover", "best"]
     lines = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
