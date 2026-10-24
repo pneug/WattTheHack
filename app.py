@@ -19,10 +19,12 @@ from baseline import park_means
 from pipeline import fit_predict
 from pipeline.evaluate import energy_interval
 from preprocessing import (
+    DATA_DIR,
     REFERENCES,
     SENSORS,
     STEP_HOURS,
     TARGETS,
+    VAL,
     clean_turbine,
     load_power_curve,
     to_wide,
@@ -39,6 +41,8 @@ PRIMARY_GREEN = "#008b47"
 PREDICTION_GREEN = "#77b90f"
 OUTAGE_YELLOW = "#fad804"
 DEFAULT_OUTAGE_PERIOD = (date(2026, 9, 1), date(2026, 9, 3))
+# public part of the test set: test_set=True and park T known (VAL end is exclusive)
+PUBLIC_TEST_PERIOD = (VAL[0].date(), (VAL[1] - pd.Timedelta(days=1)).date())
 
 class UploadedTurbineFile(Protocol):
     name: str
@@ -120,6 +124,45 @@ def load_data(
         frames.append(raw)
 
     return pd.concat(frames, ignore_index=True)
+
+
+@dataclass(frozen=True)
+class LocalTurbineFile:
+    """A bundled data file with the same interface as a Streamlit upload."""
+
+    path: Path
+
+    @property
+    def name(self) -> str:
+        return self.path.name
+
+    def getvalue(self) -> bytes:
+        return self.path.read_bytes()
+
+
+@st.cache_data(max_entries=1, show_spinner=False)
+def load_bundled_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Raw reference and target data shipped in data/dataset (the challenge files)."""
+    files = {t: LocalTurbineFile(DATA_DIR / f"{t}_data.xlsx") for t in (*REFERENCES, *TARGETS)}
+    return (
+        load_data([files[t] for t in REFERENCES]),
+        load_data([files[t] for t in TARGETS]),
+    )
+
+
+def run_bundled_analysis(period: tuple[date, date]) -> None:
+    """Button callback: run the analysis on the challenge files for a fixed period."""
+    st.session_state["outage_period"] = period
+    try:
+        raw_references, raw_target = load_bundled_data()
+        st.session_state["available_turbines"] = get_available_turbines(raw_references)
+        st.session_state["analysis_result"] = run_analysis(raw_references, raw_target, period)
+        st.session_state["analysis_period"] = period
+        st.session_state["main_tabs"] = "Dashboard & Results"
+        st.session_state.pop("analysis_error", None)
+    except (OSError, ValueError) as exc:
+        st.session_state.pop("analysis_result", None)
+        st.session_state["analysis_error"] = str(exc)
 
 
 def preprocess_data(raw_data: pd.DataFrame) -> pd.DataFrame:
@@ -899,15 +942,9 @@ def render_methodology(result: AnalysisResult | None) -> None:
     methods_tabs.render_methodology_story()
 
     st.markdown("#### Check on your selected period")
-    st.markdown(
-        "Accuracy is calculated only for timestamps in the selected period where "
-        "an uploaded target turbine has an observed wind-speed value. Per-turbine "
-        "wind-speed and power RMSE/MAE use that turbine's paired observations. "
-        "The total RMSE/MAE pools all paired turbine/time observations before "
-        "calculating the errors; it is not an average of turbine-level metrics. "
-        "Estimated energy and observed actual energy are summed across uploaded turbines, while "
-        "energy-yield deviation sums predicted minus actual kWh where observations "
-        "are available. Periods without target observations have no accuracy metrics."
+    st.caption(
+        "Only where the uploaded target turbines have measured wind. "
+        "Totals pool all turbine steps; energy deviation is predicted minus actual kWh."
     )
     if result is None:
         st.info("Submit uploaded data to view predictions and any available validation metrics.")
@@ -983,6 +1020,25 @@ def main() -> None:
         st.image(str(image_directory / "LogoBayWa.webp"), width="stretch")
 
         st.markdown("## Analysis setup")
+        st.markdown("**Quick start with the challenge data**")
+        with st.container(horizontal=True):
+            st.button(
+                "Public test set (4–9 Sep)",
+                icon=":material/fact_check:",
+                on_click=run_bundled_analysis,
+                args=(PUBLIC_TEST_PERIOD,),
+                help="Bundled challenge files; park T is known here, so accuracy metrics are shown.",
+                width="stretch",
+            )
+            st.button(
+                "Judged outage (1–3 Sep)",
+                icon=":material/bolt:",
+                on_click=run_bundled_analysis,
+                args=(DEFAULT_OUTAGE_PERIOD,),
+                help="Bundled challenge files; park T is missing here (hidden test set).",
+                width="stretch",
+            )
+        st.markdown("**Or upload your own data**")
         st.caption("Configure the data and outage period for your analysis.")
         reference_file = st.file_uploader(
             "Reference turbines H1–H5 and O1–O2 (one raw file per turbine)",
@@ -1097,9 +1153,10 @@ def main() -> None:
 
     st.title("Wind Farm Outage Analysis")
     st.caption("BayWa r.e. · Munich Climate Week Hackathon Challenge 1")
-    dashboard_tab, methodology_tab, tried_tab = st.tabs(
+    dashboard_tab, test_tab, methodology_tab, tried_tab = st.tabs(
         [
             "Dashboard & Results",
+            "Test Set Results",
             "Methodology & Validation",
             "Things We Tried but Didn't Work Out",
         ],
@@ -1115,6 +1172,10 @@ def main() -> None:
                 result,
                 available_turbines,
             )
+
+    if test_tab.open:
+        with test_tab:
+            methods_tabs.render_test_results()
 
     if methodology_tab.open:
         with methodology_tab:
