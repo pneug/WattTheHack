@@ -35,50 +35,14 @@ Validation 4–9 Sep: wind RMSE T1 1.60 / T2 1.25 / T3 1.34 m/s (see notebook se
 
 `ws` = `to_wide(load_clean())` from `preprocessing.py`. Try it: `python baseline.py`.
 
-## Plug it into the Streamlit app
+## Streamlit app integration
 
-`app.py` has three placeholder functions. Replace them; the rest of the UI stays as is.
+`app.py` uses the baseline directly with uploaded data:
 
-**1. Load the data once** (top of `app.py`):
+- Upload one raw file for each reference turbine H1–H5 and O1–O2, plus one affected target file (T1, T2, or T3). The files must include the original turbine name, timestamp, sensor, and `test_set` columns.
+- The app applies `clean_turbine()` to each uploaded turbine and pivots the cleaned wind speed with `to_wide()`.
+- The automatic period action selects the longest contiguous run of missing target wind speed. The user can also edit the outage dates manually.
+- The baseline fits outside the selected date window (inclusive dates in the UI) and predicts through the selected turbine's supplied power curve. Observed target readings are retained for validation where present; hidden or missing observations remain NaN.
+- The app reports accuracy only when actual target readings are available. The default period is 1–3 Sep 2026, matching the supplied hidden test window.
 
-```python
-from baseline import OLSBaseline, run_outage
-from preprocessing import load_clean, load_power_curve, to_wide
-
-@st.cache_data
-def get_wind_table() -> pd.DataFrame:
-    return to_wide(load_clean())          # timestamp x turbine, ~10 s the first time
-```
-
-**2. Replace `calculate_predictions`** (same columns the charts already expect):
-
-```python
-def calculate_predictions(df_reference, outage_period, model_params):
-    start, end = outage_period                              # dates, end inclusive
-    res = run_outage(get_wind_table(), start, pd.Timestamp(end) + pd.Timedelta(days=1))
-    t = model_params.get("turbine", "T1")                   # pick one turbine for the chart
-    return pd.DataFrame({
-        "timestamp": res.index,
-        "reference_wind_speed": get_wind_table().loc[res.index, ["H1", "H2", "H3", "H4", "H5"]].mean(axis=1).values,
-        "predicted_wind_speed": res[f"{t}_pred"].values,
-        "actual_wind_speed": res[f"{t}_actual"].values,     # NaN in the hidden window: the chart should skip it
-    })
-```
-
-**3. Replace `calculate_energy_loss`:**
-
-```python
-def calculate_energy_loss(predictions, power_curve):
-    kwh = wind_to_power(predictions["predicted_wind_speed"], load_power_curve()) / 6
-    return pd.DataFrame({"timestamp": predictions["timestamp"], "loss_kwh": kwh})
-```
-
-(add `from preprocessing import wind_to_power` to the import above). For all three turbines, sum `res[[c for c in res if c.endswith("_loss_kwh")]]` instead.
-
-**4. Check:** `streamlit run app.py`, choose 4–9 Sep (actual T known): predicted and actual lines should follow each other; for 1–3 Sep the actual line is empty.
-
-**Gotchas**
-- The app's dates are 2025 placeholders; the data covers **1 Jul–30 Sep 2026**. Set `DEFAULT_OUTAGE_PERIOD` to `(date(2026, 9, 1), date(2026, 9, 3))`.
-- The app's timestamps are tz-aware (`Europe/Berlin`); ours are naive local time. Use `.tz_localize("Europe/Berlin")` only for display.
-- The app's example power curve is not the real one; use `load_power_curve()`.
-- Leave the outage window out of the fit (`run_outage` does this) so the validation numbers stay honest.
+Run `streamlit run app.py` from the repository root. For the supplied data, automatic detection on T1 should select 1–3 Sep 2026; this produces 432 predicted steps and no actual target readings in the window.

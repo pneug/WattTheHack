@@ -43,6 +43,11 @@ class OLSBaseline:
             keep = ~((ws.index >= pd.Timestamp(exclude[0])) & (ws.index < pd.Timestamp(exclude[1])))
         for t in self.targets:
             ok = keep & X.notna().all(axis=1) & ws[t].notna()
+            if ok.sum() < 3:
+                raise ValueError(
+                    f"At least three valid training observations are required to fit {t}; "
+                    f"found {ok.sum()}."
+                )
             A = np.column_stack([np.ones(ok.sum()), X[ok].values])
             beta, *_ = np.linalg.lstsq(A, ws.loc[ok, t].values, rcond=None)
             self.coef_[t] = tuple(float(b) for b in beta)
