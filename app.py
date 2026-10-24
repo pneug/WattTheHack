@@ -358,22 +358,53 @@ def render_dashboard(
     """Render the outage estimate and any metrics supported by observed data."""
     st.subheader("Outage overview")
     turbine_label = ", ".join(result.turbine_types) if result else "not submitted"
-    st.caption(
-        f"Selected period: {selected_period[0]:%d %b %Y} – "
-        f"{selected_period[1]:%d %b %Y} · Turbine: {turbine_label}"
-    )
+    # st.caption(
+    #     f"Selected period: {selected_period[0]:%d %b %Y} – "
+    #     f"{selected_period[1]:%d %b %Y} · Turbine: {turbine_label}"
+    # )
+    delta = selected_period[1] - selected_period[0]
+    outage_hours = int(delta.total_seconds() / 3600)
 
+
+
+    metric_rows = []
+    total_predictions = pd.concat(result.predictions.values(), ignore_index=True)
+    total_energy = pd.concat(result.energy_loss.values(), ignore_index=True)
+    total_loss_kwh = total_energy["loss_kwh"].sum(min_count=1)
+    total_loss_label = (
+        f"{total_loss_kwh:,.1f} kWh"
+        if pd.notna(total_loss_kwh)
+        else "N/A"
+    )
+    st.markdown(
+    f"""
+    <div style="
+        background-color: #b42318;
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin: 0.75rem 0 1.25rem;
+    ">
+        <div style="font-size: 1rem; font-weight: 600;">
+            Total estimated energy yield loss
+        </div>
+        <div style="font-size: 2.5rem; font-weight: 700; line-height: 1.2;">
+            {total_loss_label}
+        </div>
+        <div style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">
+            Outage duration: <strong>{outage_hours} hours</strong>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+    total_metrics = calculate_validation_metrics(total_predictions, total_energy)
     render_turbine_status(available_turbines, EXPECTED_TURBINES)
 
     if result is None:
         st.info("Upload the wind data and submit it from the sidebar to start the calculation.")
         return
-
-    metric_rows = []
-    total_predictions = pd.concat(result.predictions.values(), ignore_index=True)
-    total_energy = pd.concat(result.energy_loss.values(), ignore_index=True)
-    total_metrics = calculate_validation_metrics(total_predictions, total_energy)
-
+    
     for turbine in result.turbine_types:
         turbine_predictions = result.predictions[turbine]
         turbine_energy = result.energy_loss[turbine]
@@ -586,13 +617,13 @@ def render_dashboard(
             )
             st.plotly_chart(loss_figure, width="stretch")
 
-    st.markdown("#### Prediction Method")
-    st.markdown(
-        "The model fits a separate ordinary least-squares relationship for each uploaded "
-        "target turbine using the mean wind speeds from parks H and O. The selected "
-        "outage dates are excluded from fitting; predicted wind speed is converted "
-        "through that turbine's supplied power curve."
-    )
+    # st.markdown("#### Prediction Method")
+    # st.markdown(
+    #     "The model fits a separate ordinary least-squares relationship for each uploaded "
+    #     "target turbine using the mean wind speeds from parks H and O. The selected "
+    #     "outage dates are excluded from fitting; predicted wind speed is converted "
+    #     "through that turbine's supplied power curve."
+    # )
 
     if st.button("Draft Insurance Report", type="primary"):
         total_loss = total_energy["loss_kwh"].sum(min_count=1)
@@ -667,6 +698,14 @@ def render_turbine_status(
 def render_methodology(result: AnalysisResult | None) -> None:
     """Describe the implemented baseline and show metrics only for observed targets."""
     st.subheader("Methodology & Validation")
+
+    st.markdown("#### Baseline Model")
+    st.markdown(
+        "The model fits a separate ordinary least-squares relationship for each uploaded "
+        "target turbine using the mean wind speeds from parks H and O. The selected "
+        "outage dates are excluded from fitting; predicted wind speed is converted "
+        "through that turbine's supplied power curve."
+    )
     st.markdown("### Prediction Method")
     st.markdown(
         "Raw turbine uploads are cleaned with the project's preprocessing rules. "
