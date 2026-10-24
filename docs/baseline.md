@@ -39,10 +39,10 @@ Validation 4–9 Sep: wind RMSE T1 1.60 / T2 1.25 / T3 1.34 m/s (see notebook se
 
 `app.py` uses the baseline directly with uploaded data:
 
-- Upload one raw file for each reference turbine H1–H5 and O1–O2, plus one affected target file (T1, T2, or T3). The files must include the original turbine name, timestamp, sensor, and `test_set` columns.
+- Upload one raw file for each reference turbine H1–H5 and O1–O2, plus any nonempty subset of target files T1, T2, and T3. The files must include the original turbine name, timestamp, sensor, and `test_set` columns; upload at most one file per turbine.
 - The app applies `clean_turbine()` to each uploaded turbine and pivots the cleaned wind speed with `to_wide()`.
-- The automatic period action selects the longest contiguous run of missing target wind speed. The user can also edit the outage dates manually.
-- The baseline fits outside the selected date window (inclusive dates in the UI) and predicts through the selected turbine's supplied power curve. Observed target readings are retained for validation where present; hidden or missing observations remain NaN.
-- The app reports accuracy only when actual target readings are available. The default period is 1–3 Sep 2026, matching the supplied hidden test window.
+- The automatic period action selects the longest contiguous run of missing wind speed across all uploaded target turbines. The user can also edit the outage dates manually; the selected window is then applied to every uploaded target.
+- The baseline fits a separate model for each uploaded target outside the selected date window (inclusive dates in the UI) and predicts through that turbine's supplied power curve. Observed target readings are retained for validation where present; hidden or missing observations remain NaN.
+- The dashboard summarizes each turbine and a combined total. Combined wind-speed and power RMSE/MAE pool all paired turbine/time observations before calculating the errors; energy totals sum across turbines. Accuracy is shown only when actual target readings are available. The default period is 1–3 Sep 2026, matching the supplied hidden test window.
 
-Run `streamlit run app.py` from the repository root. For the supplied data, automatic detection on T1 should select 1–3 Sep 2026; this produces 432 predicted steps and no actual target readings in the window.
+Run `streamlit run app.py` from the repository root. For the supplied data, automatic detection should select 1–3 Sep 2026; this produces 432 predicted steps per uploaded target and no actual target readings in the window.

@@ -44,9 +44,9 @@ class UploadedTurbineFile(Protocol):
 
 @dataclass(frozen=True)
 class AnalysisResult:
-    predictions: pd.DataFrame
-    energy_loss: pd.DataFrame
-    turbine_type: str
+    predictions: dict[str, pd.DataFrame]
+    energy_loss: dict[str, pd.DataFrame]
+    turbine_types: list[str]
     available_turbines: list[str]
 
 
@@ -134,6 +134,14 @@ def estimate_outage_period(
     wind_speed: pd.Series,
 ) -> tuple[date, date]:
     """Find the dates covered by the longest consecutive missing-wind-speed interval."""
+    start, end, _ = _estimate_outage_interval(wind_speed)
+    return start, end
+
+
+def _estimate_outage_interval(
+    wind_speed: pd.Series,
+) -> tuple[date, date, int]:
+    """Return the dates and number of steps in the longest missing-data interval."""
     missing = wind_speed.isna().to_numpy()
     best_start = best_end = None
     run_start = None
@@ -153,7 +161,28 @@ def estimate_outage_period(
         raise ValueError("No missing wind-speed interval was found in the target data.")
 
     timestamps = wind_speed.index
-    return timestamps[best_start].date(), timestamps[best_end - 1].date()
+    return (
+        timestamps[best_start].date(),
+        timestamps[best_end - 1].date(),
+        best_end - best_start,
+    )
+
+
+def estimate_outage_period_for_targets(
+    wind_table: pd.DataFrame,
+    target_names: Sequence[str],
+) -> tuple[date, date]:
+    """Choose the longest missing interval found on any uploaded target turbine."""
+    candidates = []
+    for turbine in target_names:
+        try:
+            candidates.append(_estimate_outage_interval(wind_table[turbine]))
+        except ValueError:
+            continue
+    if not candidates:
+        raise ValueError("No missing wind-speed interval was found in the target data.")
+    start, end, _ = max(candidates, key=lambda interval: interval[2])
+    return start, end
 
 
 def get_power_curve(turbine_type: str) -> pd.DataFrame:
@@ -203,14 +232,50 @@ def calculate_energy_loss(
     predictions: pd.DataFrame,
     power_curve: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Convert predicted wind speed to predicted energy per 10-minute step."""
-    power_kw = wind_to_power(predictions["predicted_wind_speed"], power_curve)
+    """Convert predicted and actual wind speeds to power and energy per step."""
+    predicted_power_kw = wind_to_power(
+        predictions["predicted_wind_speed"], power_curve
+    )
+    actual_power_kw = wind_to_power(predictions["actual_wind_speed"], power_curve)
     return pd.DataFrame(
         {
             "timestamp": predictions["timestamp"],
-            "loss_kwh": power_kw * STEP_HOURS,
+            "predicted_power_kw": predicted_power_kw,
+            "actual_power_kw": actual_power_kw,
+            "loss_kwh": predicted_power_kw * STEP_HOURS,
+            "actual_yield_kwh": actual_power_kw * STEP_HOURS,
         }
     )
+
+
+def calculate_validation_metrics(
+    predictions: pd.DataFrame,
+    energy_loss: pd.DataFrame,
+) -> dict[str, float] | None:
+    """Calculate wind, power, and net energy-yield errors on paired observations."""
+    paired = predictions.dropna(
+        subset=["actual_wind_speed", "predicted_wind_speed"]
+    )
+    paired_energy = energy_loss.dropna(
+        subset=["actual_power_kw", "predicted_power_kw"]
+    )
+    if paired.empty or paired_energy.empty:
+        return None
+
+    wind_errors = paired["predicted_wind_speed"] - paired["actual_wind_speed"]
+    power_errors = (
+        paired_energy["predicted_power_kw"] - paired_energy["actual_power_kw"]
+    )
+    energy_deviation = (
+        paired_energy["loss_kwh"] - paired_energy["actual_yield_kwh"]
+    ).sum()
+    return {
+        "wind_rmse": math.sqrt((wind_errors**2).mean()),
+        "wind_mae": wind_errors.abs().mean(),
+        "power_rmse": math.sqrt((power_errors**2).mean()),
+        "power_mae": power_errors.abs().mean(),
+        "energy_deviation_kwh": energy_deviation,
+    }
 
 
 def run_analysis(
@@ -228,25 +293,29 @@ def run_analysis(
         )
 
     target_names = get_available_turbines(raw_target)
-    if len(target_names) != 1 or target_names[0] not in TARGETS:
-        raise ValueError("Upload one target turbine file containing T1, T2, or T3.")
-    selected_turbine = target_names[0]
+    if not target_names or not set(target_names).issubset(TARGETS):
+        raise ValueError("Upload at least one target turbine file containing T1, T2, or T3.")
 
     cleaned = preprocess_data(pd.concat([raw_references, raw_target], ignore_index=True))
     wind_table = to_wide(cleaned)
-    predictions = calculate_predictions(
-        wind_table,
-        outage_period,
-        {"turbine": selected_turbine},
-    )
-    energy_loss = calculate_energy_loss(
-        predictions,
-        get_power_curve(selected_turbine),
-    )
+    predictions: dict[str, pd.DataFrame] = {}
+    energy_loss: dict[str, pd.DataFrame] = {}
+    for turbine in TARGETS:
+        if turbine not in target_names:
+            continue
+        predictions[turbine] = calculate_predictions(
+            wind_table,
+            outage_period,
+            {"turbine": turbine},
+        )
+        energy_loss[turbine] = calculate_energy_loss(
+            predictions[turbine],
+            get_power_curve(turbine),
+        )
     return AnalysisResult(
         predictions=predictions,
         energy_loss=energy_loss,
-        turbine_type=selected_turbine,
+        turbine_types=[turbine for turbine in TARGETS if turbine in target_names],
         available_turbines=sorted(reference_names),
     )
 
@@ -283,17 +352,12 @@ def apply_page_styles() -> None:
 
 def render_dashboard(
     selected_period: tuple[date, date],
-    turbine_type: str | None,
     result: AnalysisResult | None,
     available_turbines: Sequence[str],
 ) -> None:
     """Render the outage estimate and any metrics supported by observed data."""
     st.subheader("Outage overview")
-    turbine_label = (
-        turbine_type
-        if turbine_type is not None
-        else "inferred from affected data on submission"
-    )
+    turbine_label = ", ".join(result.turbine_types) if result else "not submitted"
     st.caption(
         f"Selected period: {selected_period[0]:%d %b %Y} – "
         f"{selected_period[1]:%d %b %Y} · Turbine: {turbine_label}"
@@ -305,94 +369,279 @@ def render_dashboard(
         st.info("Upload the wind data and submit it from the sidebar to start the calculation.")
         return
 
-    predictions = result.predictions
-    energy_loss = result.energy_loss
-    paired = predictions.dropna(subset=["actual_wind_speed", "predicted_wind_speed"])
-    if not paired.empty:
-        errors = paired["predicted_wind_speed"] - paired["actual_wind_speed"]
-        metric_columns = st.columns(2)
-        metric_columns[0].metric("RMSE wind speed", f"{math.sqrt((errors ** 2).mean()):.2f} m/s")
-        metric_columns[1].metric("MAE wind speed", f"{errors.abs().mean():.2f} m/s")
-    else:
-        st.info("Actual target readings are unavailable for this period; accuracy metrics are not shown.")
+    metric_rows = []
+    total_predictions = pd.concat(result.predictions.values(), ignore_index=True)
+    total_energy = pd.concat(result.energy_loss.values(), ignore_index=True)
+    total_metrics = calculate_validation_metrics(total_predictions, total_energy)
 
-    total_loss = float(energy_loss["loss_kwh"].sum(min_count=1))
-    if not energy_loss.empty and not math.isnan(total_loss):
-        st.metric("Estimated energy loss", f"{total_loss:,.1f} kWh")
-    else:
-        st.warning("Energy loss could not be estimated because reference wind-speed data is missing.")
+    for turbine in result.turbine_types:
+        turbine_predictions = result.predictions[turbine]
+        turbine_energy = result.energy_loss[turbine]
+        validation_metrics = calculate_validation_metrics(
+            turbine_predictions, turbine_energy
+        )
+        metric_rows.append(
+            _metric_summary_row(turbine, turbine_energy, validation_metrics)
+        )
 
-    chart_column, loss_column = st.columns([1.6, 1])
-    with chart_column:
-        st.markdown("#### Wind Speed Visualization")
-        wind_figure = go.Figure()
-        wind_figure.add_trace(
-            go.Scatter(
-                x=predictions["timestamp"],
-                y=predictions["actual_wind_speed"],
-                name="Actual",
-                mode="lines",
-                line={"color": PRIMARY_GREEN, "width": 2},
-            )
+    metric_rows.insert(
+        0,
+        _metric_summary_row("Total", total_energy, total_metrics),
+    )
+    st.markdown("#### Metrics summary")
+    missing_turbines = [
+        turbine for turbine in TARGETS if turbine not in result.turbine_types
+    ]
+    if missing_turbines:
+        st.caption(
+            "Predictions are not available for all turbines "
+            f"({', '.join(missing_turbines)} missing); aggregate values include "
+            f"only the available turbines: {', '.join(result.turbine_types)}."
         )
-        wind_figure.add_trace(
-            go.Scatter(
-                x=predictions["timestamp"],
-                y=predictions["predicted_wind_speed"],
-                name="Baseline prediction",
-                mode="lines",
-                line={"color": PREDICTION_GREEN, "width": 2},
-            )
+    metrics_table = pd.DataFrame(metric_rows)
+    st.dataframe(
+        metrics_table,
+        column_config={
+            "Wind RMSE": st.column_config.TextColumn(
+                "Wind RMSE",
+                help="Root mean square error of wind speed, in m/s.",
+            ),
+            "Wind MAE": st.column_config.TextColumn(
+                "Wind MAE",
+                help="Mean absolute error of wind speed, in m/s.",
+            ),
+            "Power RMSE": st.column_config.TextColumn(
+                "Power RMSE",
+                help="Root mean square error of power, in kW.",
+            ),
+            "Power MAE": st.column_config.TextColumn(
+                "Power MAE",
+                help="Mean absolute error of power, in kW.",
+            ),
+            "Estimated energy": st.column_config.TextColumn(
+                "Estimated energy",
+                help="Estimated energy loss, in kWh.",
+            ),
+            "Actual energy": st.column_config.TextColumn(
+                "Actual energy",
+                help="Observed actual energy yield, in kWh.",
+            ),
+            "Energy deviation": st.column_config.TextColumn(
+                "Energy deviation",
+                help="Estimated minus observed energy yield, in kWh.",
+            ),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+    validation_columns = [
+        "Wind RMSE",
+        "Wind MAE",
+        "Power RMSE",
+        "Power MAE",
+        "Actual energy",
+        "Energy deviation",
+    ]
+    if metrics_table[validation_columns].eq("N/A").any().any():
+        st.caption(
+            "N/A means validation data is missing: during an actual outage, "
+            "there are no observed turbine readings to compare against."
         )
-        wind_figure.update_layout(
-            template="baywa",
-            height=370,
-            xaxis_title="Time",
-            yaxis_title="Wind speed (m/s)",
-            legend={"orientation": "h", "y": 1.12},
-        )
-        st.plotly_chart(wind_figure, width="stretch")
-
-    with loss_column:
-        st.markdown("#### Energy Loss Calculation")
-        loss_figure = go.Figure(
+    st.markdown("#### Estimated energy loss over time")
+    total_loss_figure = go.Figure()
+    chart_colors = ["#006b37", "#5b8f0b", "#c9ad00"]
+    turbine_colors = {
+        turbine: chart_colors[index]
+        for index, turbine in enumerate(result.turbine_types)
+    }
+    for turbine in result.turbine_types:
+        turbine_energy = result.energy_loss[turbine]
+        total_loss_figure.add_trace(
             go.Bar(
-                x=energy_loss["timestamp"],
-                y=energy_loss["loss_kwh"],
-                name="Estimated lost yield",
-                marker_color=OUTAGE_YELLOW,
-                hovertemplate="%{x}<br>%{y:.2f} kWh<extra></extra>",
+                x=turbine_energy["timestamp"],
+                y=turbine_energy["loss_kwh"],
+                name=turbine,
+                marker_color=turbine_colors[turbine],
+                hovertemplate="%{x}<br>%{y:.2f} kWh<extra>%{fullData.name}</extra>",
             )
         )
-        loss_figure.update_layout(
-            template="baywa",
-            height=370,
-            xaxis_title="Time",
-            yaxis_title="Lost yield (kWh / 10 min)",
-            showlegend=False,
+    actual_energy = pd.concat(
+        [
+            result.energy_loss[turbine][["timestamp", "actual_yield_kwh"]]
+            for turbine in result.turbine_types
+        ],
+        ignore_index=True,
+    )
+    actual_energy = (
+        actual_energy.groupby("timestamp", as_index=False)["actual_yield_kwh"]
+        .sum(min_count=1)
+        .dropna(subset=["actual_yield_kwh"])
+    )
+    if not actual_energy.empty:
+        total_loss_figure.add_trace(
+            go.Line(
+                x=actual_energy["timestamp"],
+                y=actual_energy["actual_yield_kwh"],
+                name="Actual energy yield",
+                # mode="lines",
+                line={"color": "#20332acd", "width": 1},
+                # marker={"size": 6},
+                connectgaps=False,
+                hovertemplate="%{x}<br>%{y:.2f} kWh<extra>%{fullData.name}</extra>",
+            )
         )
-        st.plotly_chart(loss_figure, width="stretch")
+    total_loss_figure.update_layout(
+        template="baywa",
+        height=370,
+        barmode="stack",
+        xaxis_title="Time",
+        yaxis_title="Estimated energy loss (kWh / 10 min)",
+        legend={"orientation": "h", "y": 1.12},
+    )
+    st.plotly_chart(total_loss_figure, width="stretch")
+    st.markdown("#### Estimated wind speed over time")
+    total_wind_speed_figure = go.Figure()
+    for turbine in result.turbine_types:
+        turbine_predictions = result.predictions[turbine]
+        total_wind_speed_figure.add_trace(
+            go.Scatter(
+                x=turbine_predictions["timestamp"],
+                y=turbine_predictions["predicted_wind_speed"],
+                name=turbine,
+                mode="lines",
+                line={"color": turbine_colors[turbine], "width": 2},
+            )
+        )
+    total_wind_speed_figure.update_layout(
+        template="baywa",
+        height=370,
+        xaxis_title="Time",
+        yaxis_title="Estimated wind speed (m/s)",
+        legend={"orientation": "h", "y": 1.12},
+    )
+    st.plotly_chart(total_wind_speed_figure, width="stretch")
+    with st.expander("How are the total metrics aggregated?"):
+        st.write(
+            "Wind-speed and power RMSE/MAE are calculated by pooling all available "
+            "paired turbine/time observations before calculating the errors; they are "
+            "not averages of the individual turbine metrics. Estimated energy and "
+            "observed actual energy are summed across uploaded turbines. Energy "
+            "deviation is summed only over observations with actual target readings."
+        )
+    if total_metrics is None:
+        st.info("Actual target readings are unavailable for this period; accuracy metrics are N/A.")
+
+    for turbine in result.turbine_types:
+        turbine_predictions = result.predictions[turbine]
+        turbine_energy = result.energy_loss[turbine]
+        st.markdown(f"### {turbine}")
+        chart_column, loss_column = st.columns([1.6, 1])
+        with chart_column:
+            st.markdown("#### Wind speed")
+            wind_figure = go.Figure()
+            wind_figure.add_trace(
+                go.Scatter(
+                    x=turbine_predictions["timestamp"],
+                    y=turbine_predictions["actual_wind_speed"],
+                    name="Actual",
+                    mode="lines",
+                    line={"color": "#20332a", "width": 2},
+                )
+            )
+            wind_figure.add_trace(
+                go.Scatter(
+                    x=turbine_predictions["timestamp"],
+                    y=turbine_predictions["predicted_wind_speed"],
+                    name="Baseline prediction",
+                    mode="lines",
+                    line={"color": turbine_colors[turbine], "width": 2},
+                )
+            )
+            wind_figure.update_layout(
+                template="baywa",
+                height=370,
+                xaxis_title="Time",
+                yaxis_title="Wind speed (m/s)",
+                legend={"orientation": "h", "y": 1.12},
+            )
+            st.plotly_chart(wind_figure, width="stretch")
+
+        with loss_column:
+            st.markdown("#### Estimated energy")
+            loss_figure = go.Figure(
+                go.Bar(
+                    x=turbine_energy["timestamp"],
+                    y=turbine_energy["loss_kwh"],
+                    name="Estimated lost yield",
+                    marker_color=turbine_colors[turbine],
+                    hovertemplate="%{x}<br>%{y:.2f} kWh<extra></extra>",
+                )
+            )
+            loss_figure.update_layout(
+                template="baywa",
+                height=370,
+                xaxis_title="Time",
+                yaxis_title="Energy (kWh / 10 min)",
+                showlegend=False,
+            )
+            st.plotly_chart(loss_figure, width="stretch")
 
     st.markdown("#### Prediction Method")
     st.markdown(
-        "The model fits a separate ordinary least-squares relationship for the selected "
+        "The model fits a separate ordinary least-squares relationship for each uploaded "
         "target turbine using the mean wind speeds from parks H and O. The selected "
         "outage dates are excluded from fitting; predicted wind speed is converted "
         "through that turbine's supplied power curve."
     )
 
     if st.button("Draft Insurance Report", type="primary"):
-        if math.isnan(total_loss):
+        total_loss = total_energy["loss_kwh"].sum(min_count=1)
+        if pd.isna(total_loss):
             st.warning("A report cannot be drafted because no energy estimate is available.")
         else:
             st.info(
                 "**Subject:** Wind farm outage – preliminary energy loss estimate\n\n"
-                f"Selected turbine: {turbine_type}\n\n"
+                f"Selected turbines: {', '.join(result.turbine_types)}\n\n"
                 f"Period: {selected_period[0]:%d %b %Y} to "
                 f"{selected_period[1]:%d %b %Y} (inclusive)\n\n"
                 f"Estimated energy: {total_loss:,.1f} kWh\n\n"
                 "This is a preliminary model estimate and requires review before use."
             )
+
+
+def _metric_summary_row(
+    label: str,
+    energy_loss: pd.DataFrame,
+    validation_metrics: dict[str, float] | None,
+) -> dict[str, str]:
+    """Format the per-turbine or pooled metrics table row."""
+    estimated_energy = energy_loss["loss_kwh"].sum(min_count=1)
+    actual_energy = energy_loss["actual_yield_kwh"].sum(min_count=1)
+    return {
+        "Turbine": label,
+        "Wind RMSE": (
+            f"{validation_metrics['wind_rmse']:.2f}" if validation_metrics else "N/A"
+        ),
+        "Wind MAE": (
+            f"{validation_metrics['wind_mae']:.2f}" if validation_metrics else "N/A"
+        ),
+        "Power RMSE": (
+            f"{validation_metrics['power_rmse']:.2f}" if validation_metrics else "N/A"
+        ),
+        "Power MAE": (
+            f"{validation_metrics['power_mae']:.2f}" if validation_metrics else "N/A"
+        ),
+        "Estimated energy": (
+            f"{estimated_energy:,.1f}" if pd.notna(estimated_energy) else "N/A"
+        ),
+        "Actual energy": (
+            f"{actual_energy:,.1f}" if pd.notna(actual_energy) else "N/A"
+        ),
+        "Energy deviation": (
+            f"{validation_metrics['energy_deviation_kwh']:+,.1f}"
+            if validation_metrics else "N/A"
+        ),
+    }
 
 
 def render_turbine_status(
@@ -421,32 +670,54 @@ def render_methodology(result: AnalysisResult | None) -> None:
     st.markdown("### Prediction Method")
     st.markdown(
         "Raw turbine uploads are cleaned with the project's preprocessing rules. "
-        "For each target turbine, the OLS baseline predicts wind speed from the "
-        "mean park H and park O wind speeds. The selected outage window is excluded "
-        "from model fitting. Predicted wind speed is mapped to power using the "
-        "selected turbine's supplied power curve, then multiplied by 1/6 hour per step."
+        "For each uploaded target turbine, the OLS baseline predicts wind speed from "
+        "the mean park H and park O wind speeds. The selected outage window is excluded "
+        "from model fitting. Predicted wind speed is mapped to power using that "
+        "turbine's supplied power curve, then multiplied by 1/6 hour per step."
     )
     st.markdown("### Accuracy and Uncertainty")
     st.markdown(
         "Accuracy is calculated only for timestamps in the selected period where "
-        "the uploaded target turbine has an observed wind-speed value. Periods "
-        "without target observations have no accuracy metrics."
+        "an uploaded target turbine has an observed wind-speed value. Per-turbine "
+        "wind-speed and power RMSE/MAE use that turbine's paired observations. "
+        "The total RMSE/MAE pools all paired turbine/time observations before "
+        "calculating the errors; it is not an average of turbine-level metrics. "
+        "Estimated energy and observed actual energy are summed across uploaded turbines, while "
+        "energy-yield deviation sums predicted minus actual kWh where observations "
+        "are available. Periods without target observations have no accuracy metrics."
     )
     if result is None:
         st.info("Submit uploaded data to view predictions and any available validation metrics.")
         return
 
-    paired = result.predictions.dropna(
-        subset=["actual_wind_speed", "predicted_wind_speed"]
-    )
-    if paired.empty:
+    predictions = pd.concat(result.predictions.values(), ignore_index=True)
+    energy_loss = pd.concat(result.energy_loss.values(), ignore_index=True)
+    validation_metrics = calculate_validation_metrics(predictions, energy_loss)
+    if validation_metrics is None:
         st.info("No observed target readings are available for validation in this period.")
         return
 
-    errors = paired["predicted_wind_speed"] - paired["actual_wind_speed"]
-    metric_columns = st.columns(2)
-    metric_columns[0].metric("Wind speed RMSE", f"{math.sqrt((errors ** 2).mean()):.2f} m/s")
-    metric_columns[1].metric("Wind speed MAE", f"{errors.abs().mean():.2f} m/s")
+    paired = predictions.dropna(
+        subset=["actual_wind_speed", "predicted_wind_speed"]
+    )
+    metric_columns = st.columns(5)
+    metric_columns[0].metric(
+        "Wind speed RMSE", f"{validation_metrics['wind_rmse']:.2f} m/s"
+    )
+    metric_columns[1].metric(
+        "Wind speed MAE", f"{validation_metrics['wind_mae']:.2f} m/s"
+    )
+    metric_columns[2].metric(
+        "Power RMSE", f"{validation_metrics['power_rmse']:.2f} kW"
+    )
+    metric_columns[3].metric(
+        "Power MAE", f"{validation_metrics['power_mae']:.2f} kW"
+    )
+    metric_columns[4].metric(
+        "Total energy-yield deviation",
+        f"{validation_metrics['energy_deviation_kwh']:+,.1f} kWh",
+        help="Predicted minus actual energy yield, summed over timestamps with observed target data.",
+    )
 
     st.markdown("#### Actual vs. predicted wind speed")
     scatter_figure = go.Figure(
@@ -469,20 +740,23 @@ def render_methodology(result: AnalysisResult | None) -> None:
 
 
 def main() -> None:
+    image_directory = Path(__file__).resolve().parent / "app" / "images"
+
     st.set_page_config(
         page_title="Munich Climate Week - BayWa r.e. | Wind Farm Outage",
-        page_icon="🌬️",
+        page_icon=str(image_directory / "QUENTE.png"),
         layout="wide",
     )
     apply_custom_theme()
     apply_page_styles()
 
     with st.sidebar:
-        image_directory = Path(__file__).resolve().parent / "app" / "images"
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2 = st.columns([3, 2])
 
-        with col2:
+        with col1:
             st.image(str(image_directory / "MUCClimateWeekLogo.png"), use_container_width=True)
+        with col2:
+            st.image(str(image_directory / "QUENTE.png"), use_container_width=True)
         st.image(str(image_directory / "LogoBayWa.webp"), width="stretch")
 
         st.markdown("## Analysis setup")
@@ -493,9 +767,10 @@ def main() -> None:
             accept_multiple_files=True,
             key="reference_wind_data",
         )
-        affected_file = st.file_uploader(
-            "Affected turbine data (one raw T1, T2, or T3 file)",
+        target_files = st.file_uploader(
+            "Target turbine data (upload any of T1, T2, and T3)",
             type=["csv", "xlsx", "xls"],
+            accept_multiple_files=True,
             key="affected_wind_data",
         )
         st.caption(
@@ -503,32 +778,31 @@ def main() -> None:
             "sensor columns, and test_set. The app applies the project's cleaning rules."
         )
 
-        if reference_file is not None or affected_file is not None:
-            st.info("The baseline requires one file for each reference turbine H1–H5 and O1–O2.")
+        # if reference_file is not None or target_files:
+        #     st.info("The baseline requires one file for each reference turbine H1–H5 and O1–O2.")
 
         st.session_state.setdefault("outage_period", DEFAULT_OUTAGE_PERIOD)
-        if affected_file is None:
+        if not target_files:
             st.session_state.pop("outage_upload_fingerprint", None)
             st.session_state.pop("outage_estimation_error", None)
         else:
-            upload_fingerprint = (
-                affected_file.name,
-                hashlib.sha256(affected_file.getvalue()).hexdigest(),
+            upload_fingerprint = tuple(
+                (uploaded_file.name, hashlib.sha256(uploaded_file.getvalue()).hexdigest())
+                for uploaded_file in target_files
             )
             if st.session_state.get("outage_upload_fingerprint") != upload_fingerprint:
                 st.session_state["outage_upload_fingerprint"] = upload_fingerprint
                 st.session_state.pop("outage_estimation_error", None)
                 try:
-                    target_raw = load_data(affected_file)
+                    target_raw = load_data(target_files)
                     target_names = get_available_turbines(target_raw)
-                    if len(target_names) != 1 or target_names[0] not in TARGETS:
-                        raise ValueError(
-                            "Upload one affected turbine file for T1, T2, or T3."
-                        )
+                    if not target_names or not set(target_names).issubset(TARGETS):
+                        raise ValueError("Upload at least one target turbine file for T1, T2, or T3.")
                     target_data = preprocess_data(target_raw)
                     target_wide = to_wide(target_data)
-                    st.session_state["outage_period"] = estimate_outage_period(
-                        target_wide[target_names[0]]
+                    st.session_state["outage_period"] = estimate_outage_period_for_targets(
+                        target_wide,
+                        target_names,
                     )
                 except ValueError as exc:
                     st.session_state["outage_estimation_error"] = str(exc)
@@ -538,9 +812,10 @@ def main() -> None:
                 "The outage period could not be estimated automatically: "
                 f"{st.session_state['outage_estimation_error']}"
             )
-        elif affected_file is not None:
+        elif target_files:
             st.success(
-                "The outage period was estimated from the affected turbine data. "
+                "The outage period was estimated from the longest missing interval "
+                "among uploaded target turbines. "
                 "You can adjust it below."
             )
 
@@ -571,11 +846,11 @@ def main() -> None:
                 st.session_state["available_turbines"] = get_available_turbines(
                     raw_references
                 )
-                if affected_file is None:
+                if not target_files:
                     raise ValueError(
-                        "Upload one affected turbine file (T1, T2, or T3)."
+                        "Upload at least one target turbine file (T1, T2, or T3)."
                     )
-                raw_target = load_data(affected_file)
+                raw_target = load_data(target_files)
                 with st.spinner("Cleaning uploaded data and fitting the baseline..."):
                     result = run_analysis(
                         raw_references=raw_references,
@@ -596,7 +871,6 @@ def main() -> None:
     available_turbines: list[str] = st.session_state.get("available_turbines", [])
     result = st.session_state.get("analysis_result")
     analysis_period = st.session_state.get("analysis_period", selected_period)
-    analysis_turbine = result.turbine_type if result is not None else None
 
     st.title("Wind Farm Outage Analysis")
     st.caption("BayWa r.e. · Munich Climate Week Hackathon Challenge 1")
@@ -615,7 +889,6 @@ def main() -> None:
         with dashboard_tab:
             render_dashboard(
                 analysis_period,
-                analysis_turbine,
                 result,
                 available_turbines,
             )
