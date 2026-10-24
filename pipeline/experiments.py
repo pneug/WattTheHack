@@ -136,3 +136,22 @@ add("E15_refsel", BST, "automatic reference selection (forward CV) on 7 smoothed
     features=[_RS], model={"name": "ols_forward"})
 add("E15_refsel_dir8", BST, "automatic reference selection + direction octants",
     features=[_RS, DIR8], model={"name": "ols_forward"})
+
+# Optional curiosity runs. Explicit IDs work with the standard runner/logging;
+# --all excludes these unless --include-side-experiments is also supplied.
+# BEST remains the explainable challenge model.
+add("S01_mlp_matched", BST, "side: small MLP, same features/power as E12",
+    model={"name": "mlp", "hidden_layer_sizes": [32, 16], "max_epochs": 80,
+           "patience": 10, "random_state": 0}, side_experiment=True)
+_SIDE_REFS = [{"name": "all_refs_smooth", "steps": 6}, SM6, {"name": "direction"}]
+add("S02_mlp_refs", "S01_mlp_matched", "side: small MLP on 7 smoothed refs + park means + direction",
+    features=_SIDE_REFS)
+add("S03_tabpfn35_refs", BST, "side: TabPFN-3.5 Plus API, smoothed refs + direction, held-out calibration",
+    features=_SIDE_REFS,
+    model={"name": "tabpfn_api", "model_path": "v3.5_default", "n_estimators": 8,
+           "max_train_rows": 16384, "calibration_rows": 512, "batch_size": 4096,
+           "random_state": 0}, side_experiment=True, checkpoint=True)
+add("S04_tabpfn35_oos", "S03_tabpfn35_refs",
+    "side diagnostic: OOS calibration (E07 protocol), cached S03 predictions",
+    interval={"name": "gaussian", "bins": 5, "calib": "oos"},
+    prediction_cache_from="S03_tabpfn35_refs")

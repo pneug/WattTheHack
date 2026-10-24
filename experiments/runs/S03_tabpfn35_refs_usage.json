@@ -1,0 +1,23 @@
+{
+  "experiment": "S03_tabpfn35_refs",
+  "before": {
+    "source": "experiments\\runs\\S03_tabpfn35_refs_preflight.json",
+    "observed_at": "2026-10-24T13:58:38.243185+00:00",
+    "usage_text": "Currently, you have used 0 of the allowed limit of 20000000 credits. The limit will reset at 2026-11-01 00:00:00 UTC.",
+    "used_credits": 0,
+    "limit_credits": 20000000
+  },
+  "after": {
+    "observed_at": "2026-10-24T14:40:06.924345+00:00",
+    "usage_text": "Currently, you have used 1740000 of the allowed limit of 20000000 credits. The limit will reset at 2026-11-01 00:00:00 UTC.",
+    "used_credits": 1740000,
+    "limit_credits": 20000000,
+    "client_version": "0.6.1"
+  },
+  "planned_tokens": {
+    "cache_predict": 1740000.0,
+    "predict": 1740000.0
+  },
+  "note": "Before snapshot is the successful live API quota preflight immediately before the approved run.",
+  "actual_usage_delta": 1740000
+}

@@ -381,6 +381,13 @@ MODELS = {
 
 def make_model(spec):
     name, params = _spec(spec)
+    # Side experiments stay optional: ordinary runs never import the API client.
+    if name == "mlp":
+        from pipeline.nn_model import SmallMLP
+        return SmallMLP(**params)
+    if name == "tabpfn_api":
+        from pipeline.tabpfn_model import TabPFNAPI
+        return TabPFNAPI(**params)
     return MODELS[name](**params)
 
 

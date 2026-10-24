@@ -55,8 +55,18 @@ def fit_predict(data: stages.Data, config, window, targets=TARGETS,
         train = ~test & x_ok & y.notna().values & (w > 0)
         assert not (train & test).any(), "outage window leaked into the fit"
         model = stages.make_model(cfg["model"]).fit(X[train], y[train], w[train])
-        fitted = model.predict(X[train])
-        resid = y[train].values - fitted
+        # Context-based models reserve training-only rows for honest residuals:
+        # predicting their own context can severely underestimate uncertainty.
+        calib = getattr(model, "calibration_mask_", None)
+        if calib is None:
+            calib_X, calib_y = X[train], y[train]
+        else:
+            calib = np.asarray(calib)
+            if calib.dtype != bool or calib.shape != (int(train.sum()),) or not calib.any():
+                raise ValueError("model calibration_mask_ must select passed training rows")
+            calib_X, calib_y = X[train].iloc[calib], y[train].iloc[calib]
+        fitted = model.predict(calib_X)
+        resid = calib_y.values - fitted
 
         pred = pd.Series(np.nan, index=X.index[test])
         ok = x_ok[test]

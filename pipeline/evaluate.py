@@ -64,8 +64,13 @@ def _oos_recalibrate(res: dict, config: dict, curve) -> dict:
     for name, (s, e, per_t) in res.items():
         others = [d for n2, (s2, e2, d) in res.items()
                   if n2.startswith("bt_") and not _overlaps(s, e, s2, e2)]
+        if not others:
+            raise ValueError(f"no nonoverlapping backtest windows for OOS calibration of {name}")
         for t, df in per_t.items():
-            pool = pd.concat([d[t][["pred", "actual"]].dropna() for d in others])
+            pool = pd.concat([d[t][["pred", "actual"]] for d in others])
+            pool = pool.replace([np.inf, -np.inf], np.nan).dropna()
+            if pool.empty:
+                raise ValueError(f"no finite OOS calibration residuals for {name}/{t}")
             resid, fitted = (pool["actual"] - pool["pred"]).values, pool["pred"].values
             lo, hi, sigma = stages.band(df["pred"], resid, fitted, spec)
             df["lo"], df["hi"], df["sigma"] = lo, hi, sigma
@@ -78,12 +83,37 @@ def backtest(config, data=None, curve=None, step_days: int = 3) -> tuple[pd.Data
     data = core.load_data() if data is None else data
     curve = load_power_curve() if curve is None else curve
     res = {}
+    cache = None
+    cache_only = "prediction_cache_from" in cfg
+    if cache_only:
+        source_cfg = core.get_config(cfg["prediction_cache_from"])
+        if (cfg["interval"].get("calib") != "oos"
+                or source_cfg.get("prediction_cache_from")
+                or source_cfg["interval"].get("calib") == "oos"
+                or not source_cfg.get("checkpoint")
+                or source_cfg["model"]["name"] != "tabpfn_api"
+                or any(cfg[stage] != source_cfg[stage] for stage in ("features", "weights", "model"))):
+            raise ValueError("cached recalibration requires a direct matching source and target OOS calibration")
+        from pipeline.side_cache import SideBacktestCache
+        cache = SideBacktestCache(source_cfg, data, curve=curve)
+    elif cfg.get("checkpoint", False) and cfg["model"]["name"] == "tabpfn_api":
+        from pipeline.side_cache import SideBacktestCache
+        cache = SideBacktestCache(cfg, data, curve=curve)
     for name, s, e in windows(data, step_days):
         assert not _overlaps(s, e, *HIDDEN), f"{name} overlaps the hidden window"
         known = data["wind_speed"][TARGETS].reindex(pd.date_range(s, e, freq="10min", inclusive="left"))
         if name != "val" and known.notna().to_numpy().mean() < MIN_KNOWN:
             continue
-        res[name] = (s, e, core.fit_predict(data, cfg, (s, e), curve=curve))
+        per_t = cache.load(name, s, e) if cache else None
+        if per_t is None:
+            if cache_only:
+                raise RuntimeError(f"required source checkpoint missing or invalid for {name}; no model will be fitted")
+            if cfg.get("side_experiment", False):
+                print(f"Side backtest: {name} ({s:%Y-%m-%d} to {e:%Y-%m-%d})", flush=True)
+            per_t = core.fit_predict(data, cfg, (s, e), curve=curve)
+            if cache:
+                cache.save(name, s, e, per_t)
+        res[name] = (s, e, per_t)
     if cfg["interval"].get("calib") == "oos":
         res = _oos_recalibrate(res, cfg, curve)
 
@@ -104,7 +134,13 @@ def backtest(config, data=None, curve=None, step_days: int = 3) -> tuple[pd.Data
         rows.append(dict(window=name, kind=kind, target="park", start=s, **park))
     steps = pd.concat(steps)
     steps.index.name = "timestamp"
-    return pd.DataFrame(rows), steps.reset_index()
+    per_window = pd.DataFrame(rows)
+    if cfg.get("side_experiment", False):
+        per_window.attrs["model_metadata"] = {
+            name: {t: df.attrs.get("model", {}) for t, df in per_t.items()}
+            for name, (_, _, per_t) in res.items()
+        }
+    return per_window, steps.reset_index()
 
 
 def _pooled_rmse(d: pd.DataFrame, col: str) -> float:

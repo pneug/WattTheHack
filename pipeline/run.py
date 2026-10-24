@@ -1,8 +1,10 @@
-"""CLI: python -m pipeline.run E00_baseline [E01_x ...]  |  python -m pipeline.run --all"""
+"""CLI: python -m pipeline.run <id> [...] | --all [--include-side-experiments]."""
 
 from __future__ import annotations
 
 import json
+import importlib.metadata
+import platform
 import subprocess
 import sys
 import time
@@ -17,6 +19,17 @@ from pipeline.experiments import CONFIGS
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "experiments" / "runs"
 RESULTS = report.RESULTS
+
+
+def _runtime_metadata(duration: float) -> dict:
+    packages = {}
+    for name in ("numpy", "pandas", "scikit-learn", "tabpfn-client"):
+        try:
+            packages[name] = importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            pass
+    return {"python": platform.python_version(), "packages": packages,
+            "duration_seconds": round(duration, 2)}
 
 
 def _git_sha() -> str:
@@ -42,7 +55,9 @@ def run_one(exp_id: str, data=None) -> dict:
     new.to_csv(RESULTS, index=False)
     RUNS.mkdir(parents=True, exist_ok=True)
     recs = json.loads(per_window.to_json(orient="records", date_format="iso"))
-    (RUNS / f"{exp_id}.json").write_text(json.dumps({"config": cfg, "summary": summary, "per_window": recs},
+    (RUNS / f"{exp_id}.json").write_text(json.dumps({"config": cfg, "summary": summary, "per_window": recs,
+                                                    "runtime": _runtime_metadata(time.time() - t0),
+                                                    "model_metadata": per_window.attrs.get("model_metadata", {})},
                                                     indent=1), encoding="utf-8")
     steps.to_csv(RUNS / f"{exp_id}_steps.csv", index=False)
     s = summary
@@ -54,9 +69,11 @@ def run_one(exp_id: str, data=None) -> dict:
 
 
 def main(argv: list[str]) -> None:
-    ids = list(CONFIGS) if "--all" in argv else [a for a in argv if not a.startswith("-")]
+    ids = ([i for i, cfg in CONFIGS.items()
+            if not cfg.get("side_experiment", False) or "--include-side-experiments" in argv]
+           if "--all" in argv else [a for a in argv if not a.startswith("-")])
     if not ids:
-        sys.exit("usage: python -m pipeline.run <id> [<id> ...] | --all")
+        sys.exit("usage: python -m pipeline.run <id> [<id> ...] | --all [--include-side-experiments]")
     unknown = [i for i in ids if i not in CONFIGS]
     if unknown:
         sys.exit(f"unknown ids {unknown}; known: {list(CONFIGS)}")

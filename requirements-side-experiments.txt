@@ -1,0 +1,7 @@
+# Optional hosted TabPFN experiment; deliberately separate from app dependencies.
+# Install in a separate venv: client 0.6.1 requires pandas<=2.3.3,
+# scikit-learn<=1.9.0 and pyarrow<=25.0.1, older than the main environment.
+# .venv/Scripts/python.exe -m venv .venv/tabpfn
+# .venv/tabpfn/Scripts/python.exe -m pip install -r requirements-side-experiments.txt
+tabpfn-client==0.6.1
+openpyxl>=3.1

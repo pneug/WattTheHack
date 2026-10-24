@@ -65,3 +65,7 @@ lo_kwh, hi_kwh = energy_interval(total_kwh)  # 95% range from the 83 dense outag
 - **Band:** `<T>_lo` / `<T>_hi` give the band for the wind-speed chart.
 - **Methodology tab:** the figures in `pipeline/figures.py` return Plotly figures you can drop straight into the tab.
 - **After changing BEST:** run `python -m pipeline.run <BEST>` and `python -m pipeline.dense <BEST>` once, so that `energy_interval` has its backtest file.
+
+## Optional side experiments
+
+See [NN and TabPFN experiments](side-experiments.md) for results, API setup and reproducible commands. `S01_mlp_matched`, `S02_mlp_refs`, `S03_tabpfn35_refs` and the cached calibration diagnostic `S04_tabpfn35_oos` use the standard runner/logging. `--all` excludes these unless `--include-side-experiments` is supplied. TabPFN uses an isolated optional environment and resumes complete windows from local checkpoints. S04 requires the completed S03 checkpoints and makes no new API calls.

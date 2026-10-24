@@ -1,0 +1,1301 @@
+{
+  "experiment": "S03_tabpfn35_refs",
+  "created_at": "2026-10-24T13:58:38.243185+00:00",
+  "plan": {
+    "model_version": "v3.5",
+    "model_path": "v3.5_default",
+    "n_estimators": 8,
+    "n_features": 11,
+    "feature_columns": [
+      "H1_s6",
+      "H2_s6",
+      "H3_s6",
+      "H4_s6",
+      "H5_s6",
+      "O1_s6",
+      "O2_s6",
+      "H_s6",
+      "O_s6",
+      "dir_sin",
+      "dir_cos"
+    ],
+    "windows": 29,
+    "backtest_windows": 28,
+    "fit_calls": 87,
+    "predict_calls": 174,
+    "query_rows": 82944,
+    "calibration_query_rows": 44544,
+    "outage_query_rows": 38400,
+    "shape_pairs": [
+      {
+        "context_rows": 10837,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 10837,
+        "query_rows": 864,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 10883,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 2
+      },
+      {
+        "context_rows": 10883,
+        "query_rows": 864,
+        "features": 11,
+        "calls": 2
+      },
+      {
+        "context_rows": 11269,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 2
+      },
+      {
+        "context_rows": 11269,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 2
+      },
+      {
+        "context_rows": 11270,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11270,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11271,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 5
+      },
+      {
+        "context_rows": 11271,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 5
+      },
+      {
+        "context_rows": 11273,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 4
+      },
+      {
+        "context_rows": 11273,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 4
+      },
+      {
+        "context_rows": 11274,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 5
+      },
+      {
+        "context_rows": 11274,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 5
+      },
+      {
+        "context_rows": 11275,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 3
+      },
+      {
+        "context_rows": 11275,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 3
+      },
+      {
+        "context_rows": 11276,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 3
+      },
+      {
+        "context_rows": 11276,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 3
+      },
+      {
+        "context_rows": 11277,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11277,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11278,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11278,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11286,
+        "query_rows": 419,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11286,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11306,
+        "query_rows": 431,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11306,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11315,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 5
+      },
+      {
+        "context_rows": 11315,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 5
+      },
+      {
+        "context_rows": 11316,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 4
+      },
+      {
+        "context_rows": 11316,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 4
+      },
+      {
+        "context_rows": 11317,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 7
+      },
+      {
+        "context_rows": 11317,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 7
+      },
+      {
+        "context_rows": 11318,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 10
+      },
+      {
+        "context_rows": 11318,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 10
+      },
+      {
+        "context_rows": 11319,
+        "query_rows": 431,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11319,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 7
+      },
+      {
+        "context_rows": 11319,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 8
+      },
+      {
+        "context_rows": 11320,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 6
+      },
+      {
+        "context_rows": 11320,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 6
+      },
+      {
+        "context_rows": 11321,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 6
+      },
+      {
+        "context_rows": 11321,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 6
+      },
+      {
+        "context_rows": 11322,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 4
+      },
+      {
+        "context_rows": 11322,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 4
+      },
+      {
+        "context_rows": 11323,
+        "query_rows": 432,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11323,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11325,
+        "query_rows": 431,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11325,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11333,
+        "query_rows": 419,
+        "features": 11,
+        "calls": 2
+      },
+      {
+        "context_rows": 11333,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 2
+      },
+      {
+        "context_rows": 11417,
+        "query_rows": 286,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11417,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11463,
+        "query_rows": 286,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11463,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11465,
+        "query_rows": 286,
+        "features": 11,
+        "calls": 1
+      },
+      {
+        "context_rows": 11465,
+        "query_rows": 512,
+        "features": 11,
+        "calls": 1
+      }
+    ],
+    "folds": [
+      {
+        "window": "bt_0703",
+        "target": "T1",
+        "training_rows": 11788,
+        "context_rows": 11276,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0703",
+        "target": "T2",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0703",
+        "target": "T3",
+        "training_rows": 11832,
+        "context_rows": 11320,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0706",
+        "target": "T1",
+        "training_rows": 11785,
+        "context_rows": 11273,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0706",
+        "target": "T2",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0706",
+        "target": "T3",
+        "training_rows": 11828,
+        "context_rows": 11316,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0709",
+        "target": "T1",
+        "training_rows": 11787,
+        "context_rows": 11275,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0709",
+        "target": "T2",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0709",
+        "target": "T3",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0712",
+        "target": "T1",
+        "training_rows": 11929,
+        "context_rows": 11417,
+        "calibration_rows": 512,
+        "outage_query_rows": 286
+      },
+      {
+        "window": "bt_0712",
+        "target": "T2",
+        "training_rows": 11977,
+        "context_rows": 11465,
+        "calibration_rows": 512,
+        "outage_query_rows": 286
+      },
+      {
+        "window": "bt_0712",
+        "target": "T3",
+        "training_rows": 11975,
+        "context_rows": 11463,
+        "calibration_rows": 512,
+        "outage_query_rows": 286
+      },
+      {
+        "window": "bt_0715",
+        "target": "T1",
+        "training_rows": 11798,
+        "context_rows": 11286,
+        "calibration_rows": 512,
+        "outage_query_rows": 419
+      },
+      {
+        "window": "bt_0715",
+        "target": "T2",
+        "training_rows": 11845,
+        "context_rows": 11333,
+        "calibration_rows": 512,
+        "outage_query_rows": 419
+      },
+      {
+        "window": "bt_0715",
+        "target": "T3",
+        "training_rows": 11845,
+        "context_rows": 11333,
+        "calibration_rows": 512,
+        "outage_query_rows": 419
+      },
+      {
+        "window": "bt_0718",
+        "target": "T1",
+        "training_rows": 11785,
+        "context_rows": 11273,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0718",
+        "target": "T2",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0718",
+        "target": "T3",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0721",
+        "target": "T1",
+        "training_rows": 11786,
+        "context_rows": 11274,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0721",
+        "target": "T2",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0721",
+        "target": "T3",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0724",
+        "target": "T1",
+        "training_rows": 11783,
+        "context_rows": 11271,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0724",
+        "target": "T2",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0724",
+        "target": "T3",
+        "training_rows": 11827,
+        "context_rows": 11315,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0727",
+        "target": "T1",
+        "training_rows": 11789,
+        "context_rows": 11277,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0727",
+        "target": "T2",
+        "training_rows": 11832,
+        "context_rows": 11320,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0727",
+        "target": "T3",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0730",
+        "target": "T1",
+        "training_rows": 11785,
+        "context_rows": 11273,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0730",
+        "target": "T2",
+        "training_rows": 11833,
+        "context_rows": 11321,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0730",
+        "target": "T3",
+        "training_rows": 11832,
+        "context_rows": 11320,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0805",
+        "target": "T1",
+        "training_rows": 11818,
+        "context_rows": 11306,
+        "calibration_rows": 512,
+        "outage_query_rows": 431
+      },
+      {
+        "window": "bt_0805",
+        "target": "T2",
+        "training_rows": 11837,
+        "context_rows": 11325,
+        "calibration_rows": 512,
+        "outage_query_rows": 431
+      },
+      {
+        "window": "bt_0805",
+        "target": "T3",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 431
+      },
+      {
+        "window": "bt_0808",
+        "target": "T1",
+        "training_rows": 11782,
+        "context_rows": 11270,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0808",
+        "target": "T2",
+        "training_rows": 11834,
+        "context_rows": 11322,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0808",
+        "target": "T3",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0811",
+        "target": "T1",
+        "training_rows": 11788,
+        "context_rows": 11276,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0811",
+        "target": "T2",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0811",
+        "target": "T3",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0814",
+        "target": "T1",
+        "training_rows": 11790,
+        "context_rows": 11278,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0814",
+        "target": "T2",
+        "training_rows": 11828,
+        "context_rows": 11316,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0814",
+        "target": "T3",
+        "training_rows": 11833,
+        "context_rows": 11321,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0817",
+        "target": "T1",
+        "training_rows": 11783,
+        "context_rows": 11271,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0817",
+        "target": "T2",
+        "training_rows": 11834,
+        "context_rows": 11322,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0817",
+        "target": "T3",
+        "training_rows": 11834,
+        "context_rows": 11322,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0820",
+        "target": "T1",
+        "training_rows": 11783,
+        "context_rows": 11271,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0820",
+        "target": "T2",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0820",
+        "target": "T3",
+        "training_rows": 11828,
+        "context_rows": 11316,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0823",
+        "target": "T1",
+        "training_rows": 11787,
+        "context_rows": 11275,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0823",
+        "target": "T2",
+        "training_rows": 11833,
+        "context_rows": 11321,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0823",
+        "target": "T3",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0826",
+        "target": "T1",
+        "training_rows": 11783,
+        "context_rows": 11271,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0826",
+        "target": "T2",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0826",
+        "target": "T3",
+        "training_rows": 11834,
+        "context_rows": 11322,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0829",
+        "target": "T1",
+        "training_rows": 11786,
+        "context_rows": 11274,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0829",
+        "target": "T2",
+        "training_rows": 11832,
+        "context_rows": 11320,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0829",
+        "target": "T3",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0904",
+        "target": "T1",
+        "training_rows": 11781,
+        "context_rows": 11269,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0904",
+        "target": "T2",
+        "training_rows": 11827,
+        "context_rows": 11315,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0904",
+        "target": "T3",
+        "training_rows": 11827,
+        "context_rows": 11315,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0907",
+        "target": "T1",
+        "training_rows": 11781,
+        "context_rows": 11269,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0907",
+        "target": "T2",
+        "training_rows": 11827,
+        "context_rows": 11315,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0907",
+        "target": "T3",
+        "training_rows": 11827,
+        "context_rows": 11315,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0910",
+        "target": "T1",
+        "training_rows": 11783,
+        "context_rows": 11271,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0910",
+        "target": "T2",
+        "training_rows": 11831,
+        "context_rows": 11319,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0910",
+        "target": "T3",
+        "training_rows": 11833,
+        "context_rows": 11321,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0913",
+        "target": "T1",
+        "training_rows": 11786,
+        "context_rows": 11274,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0913",
+        "target": "T2",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0913",
+        "target": "T3",
+        "training_rows": 11833,
+        "context_rows": 11321,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0916",
+        "target": "T1",
+        "training_rows": 11785,
+        "context_rows": 11273,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0916",
+        "target": "T2",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0916",
+        "target": "T3",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0919",
+        "target": "T1",
+        "training_rows": 11786,
+        "context_rows": 11274,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0919",
+        "target": "T2",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0919",
+        "target": "T3",
+        "training_rows": 11833,
+        "context_rows": 11321,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0922",
+        "target": "T1",
+        "training_rows": 11786,
+        "context_rows": 11274,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0922",
+        "target": "T2",
+        "training_rows": 11829,
+        "context_rows": 11317,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0922",
+        "target": "T3",
+        "training_rows": 11832,
+        "context_rows": 11320,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0925",
+        "target": "T1",
+        "training_rows": 11787,
+        "context_rows": 11275,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0925",
+        "target": "T2",
+        "training_rows": 11830,
+        "context_rows": 11318,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0925",
+        "target": "T3",
+        "training_rows": 11835,
+        "context_rows": 11323,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0928",
+        "target": "T1",
+        "training_rows": 11788,
+        "context_rows": 11276,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0928",
+        "target": "T2",
+        "training_rows": 11828,
+        "context_rows": 11316,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "bt_0928",
+        "target": "T3",
+        "training_rows": 11832,
+        "context_rows": 11320,
+        "calibration_rows": 512,
+        "outage_query_rows": 432
+      },
+      {
+        "window": "val",
+        "target": "T1",
+        "training_rows": 11349,
+        "context_rows": 10837,
+        "calibration_rows": 512,
+        "outage_query_rows": 864
+      },
+      {
+        "window": "val",
+        "target": "T2",
+        "training_rows": 11395,
+        "context_rows": 10883,
+        "calibration_rows": 512,
+        "outage_query_rows": 864
+      },
+      {
+        "window": "val",
+        "target": "T3",
+        "training_rows": 11395,
+        "context_rows": 10883,
+        "calibration_rows": 512,
+        "outage_query_rows": 864
+      }
+    ]
+  },
+  "usage": "Currently, you have used 0 of the allowed limit of 20000000 credits. The limit will reset at 2026-11-01 00:00:00 UTC.",
+  "client_version": "0.6.1",
+  "quotes": [
+    {
+      "context_rows": 11465,
+      "query_rows": 286,
+      "features": 11,
+      "calls": 3,
+      "operation": "cache_predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 286,
+        "model_version": "v3.5",
+        "operation": "cache_predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 286,
+      "features": 11,
+      "calls": 3,
+      "operation": "predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 286,
+        "model_version": "v3.5",
+        "operation": "predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 419,
+      "features": 11,
+      "calls": 3,
+      "operation": "cache_predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 419,
+        "model_version": "v3.5",
+        "operation": "cache_predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 419,
+      "features": 11,
+      "calls": 3,
+      "operation": "predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 419,
+        "model_version": "v3.5",
+        "operation": "predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 431,
+      "features": 11,
+      "calls": 3,
+      "operation": "cache_predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 431,
+        "model_version": "v3.5",
+        "operation": "cache_predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 431,
+      "features": 11,
+      "calls": 3,
+      "operation": "predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 431,
+        "model_version": "v3.5",
+        "operation": "predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 432,
+      "features": 11,
+      "calls": 75,
+      "operation": "cache_predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 432,
+        "model_version": "v3.5",
+        "operation": "cache_predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 750000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 432,
+      "features": 11,
+      "calls": 75,
+      "operation": "predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 432,
+        "model_version": "v3.5",
+        "operation": "predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 750000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 512,
+      "features": 11,
+      "calls": 87,
+      "operation": "cache_predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 512,
+        "model_version": "v3.5",
+        "operation": "cache_predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 870000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 512,
+      "features": 11,
+      "calls": 87,
+      "operation": "predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 512,
+        "model_version": "v3.5",
+        "operation": "predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 870000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 864,
+      "features": 11,
+      "calls": 3,
+      "operation": "cache_predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 864,
+        "model_version": "v3.5",
+        "operation": "cache_predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    },
+    {
+      "context_rows": 11465,
+      "query_rows": 864,
+      "features": 11,
+      "calls": 3,
+      "operation": "predict",
+      "estimated_cost": 10000.0,
+      "pricing_version": "quota_v3",
+      "inputs": {
+        "train_rows": 11465,
+        "raw_columns": 11,
+        "test_rows": 864,
+        "model_version": "v3.5",
+        "operation": "predict",
+        "n_estimators": 8,
+        "thinking_effort": null
+      },
+      "total_estimated_cost": 30000.0
+    }
+  ],
+  "total_estimated_cost": {
+    "cache_predict": 1740000.0,
+    "predict": 1740000.0
+  },
+  "pricing_versions": [
+    "quota_v3"
+  ],
+  "estimate_calls": 12,
+  "note": "Conservative estimates use the largest context for every query shape. Cache hits and account/model eligibility are not guaranteed. Standard fits/uploads have no separate token charge. No inference was requested."
+}

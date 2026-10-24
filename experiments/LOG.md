@@ -23,7 +23,10 @@ Decision metric: backtest (28 blocks of 3 days anchored at 1 Sep, each fitted wi
 | E13_dir4_O | dir quadrant + per-sector O slope (smoothed) | 8.87 | 1.211 | 690.3 | 11.22 | +3.1/+1.4/+2.0 | 1.353 | +4.41 | 0.95 |  |
 | E09_power_gauss_bins | E[P(v)] with sigma per wind-speed bin | 9.03 | 1.261 | 721.5 | 14.03 | +4.6/+3.0/+3.4 | 1.405 | +1.90 | 0.95 |  |
 | E09_power_gauss_bins10 | E[P(v)] with sigma per wind-speed bin (10) | 9.05 | 1.261 | 721.5 | 14.03 | +4.4/+3.0/+3.3 | 1.405 | +1.71 | 0.95 |  |
+| S01_mlp_matched | side: small MLP, same features/power as E12 | 9.08 | 1.201 | 681.6 | 10.55 | +2.3/+0.2/+1.4 | 1.323 | -0.77 | 0.95 |  |
 | E09_power_gauss_bins3 | E[P(v)] with sigma per wind-speed bin (3) | 9.11 | 1.261 | 721.7 | 14.15 | +5.0/+3.3/+3.7 | 1.405 | +2.17 | 0.95 |  |
+| S02_mlp_refs | side: small MLP on 7 smoothed refs + park means + direction | 9.13 | 1.209 | 688.7 | 10.89 | +2.3/+2.3/+0.8 | 1.387 | +0.25 | 0.93 |  |
+| S03_tabpfn35_refs | side: TabPFN-3.5 Plus API, smoothed refs + direction, held-out calibration | 9.21 | 1.237 | 707.2 | 11.46 | +0.4/+3.0/+0.7 | 1.378 | +1.27 | 0.73 |  |
 | E03_power_empirical | E[P(v)], empirical residuals | 9.34 | 1.261 | 724.0 | 14.18 | +5.2/+3.1/+3.1 | 1.405 | +1.98 | 0.95 |  |
 | E03_power_gauss | E[P(v)], Gaussian residuals | 9.56 | 1.261 | 723.5 | 14.82 | +7.0/+4.4/+4.8 | 1.405 | +2.55 | 0.95 |  |
 | E08_hgb | gradient boosting, refs + hour + direction + stddev | 9.71 | 1.223 | 700.2 | 10.82 | -6.4/-4.0/-7.0 | 1.401 | -2.47 | 0.89 |  |
@@ -34,11 +37,11 @@ Decision metric: backtest (28 blocks of 3 days anchored at 1 Sep, each fitted wi
 | E04_variance_ratio | variance-ratio MCP instead of OLS | 10.74 | 1.328 | 768.9 | 14.36 | -2.0/-1.8/-2.2 | 1.617 | +13.36 | 0.94 |  |
 | E06_dir8 | + direction octant (x H) | 10.92 | 1.232 | 715.3 | 11.81 | -8.4/-6.4/-7.8 | 1.369 | -0.99 | 0.94 |  |
 | E02_smooth30min | references smoothed over 30 min | 10.97 | 1.241 | 725.2 | 13.80 | -8.6/-5.4/-7.2 | 1.383 | +1.24 | 0.95 |  |
-| E05_sigma_bins | residual spread per wind-speed bin (5) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E00_baseline | OLS T = a + b*H + c*O, static per turbine | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E07_conformal | conformal band (empirical quantiles, OOS) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
-| E07_gauss_oos | 95% band from out-of-sample sigma | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
+| E05_sigma_bins | residual spread per wind-speed bin (5) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E07_conformal_bins | conformal band per wind-speed bin (5, OOS) | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
+| E07_gauss_oos | 95% band from out-of-sample sigma | 10.97 | 1.261 | 736.8 | 13.78 | -8.6/-5.4/-7.2 | 1.405 | +0.07 | 0.95 |  |
 | E05_hinges | piecewise linear (knots 3/6/9 m/s) | 10.98 | 1.264 | 734.2 | 13.92 | -7.8/-4.4/-6.8 | 1.400 | -1.41 | 0.94 |  |
 | E06_lags | + references -20..+20 min | 11.00 | 1.224 | 715.0 | 13.80 | -8.6/-5.3/-7.2 | 1.364 | +2.09 | 0.95 |  |
 | E01_decay30 | time weights, half-life 30 d | 11.00 | 1.260 | 736.8 | 13.83 | -8.7/-5.5/-7.3 | 1.414 | +1.23 | 0.95 |  |
@@ -53,6 +56,7 @@ Decision metric: backtest (28 blocks of 3 days anchored at 1 Sep, each fitted wi
 | E01_decay7 | time weights, half-life 7 d | 11.20 | 1.260 | 737.2 | 14.16 | -9.0/-5.6/-7.2 | 1.422 | +2.29 | 0.95 |  |
 | E01_window30 | fit only on +-30 d around the outage | 11.22 | 1.261 | 738.6 | 14.33 | -9.2/-5.6/-7.4 | 1.430 | +2.33 | 0.94 |  |
 | E01_decay3 | time weights, half-life 3 d | 11.23 | 1.261 | 736.7 | 14.39 | -8.4/-5.6/-7.4 | 1.426 | +2.12 | 0.95 |  |
+| S04_tabpfn35_oos | side diagnostic: OOS calibration (E07 protocol), cached S03 predictions | 11.27 | 1.237 | 702.4 | 13.70 | +8.6/+8.7/+8.0 | 1.378 | +2.24 | 0.95 |  |
 | E06_hour | + hour of day (and x H) | 11.39 | 1.255 | 730.8 | 14.02 | -8.6/-6.1/-8.0 | 1.403 | -0.92 | 0.95 |  |
 | E02_smooth120min | references smoothed over 120 min | 11.48 | 1.217 | 709.7 | 14.16 | -8.8/-5.6/-7.5 | 1.365 | +3.53 | 0.95 |  |
 | E01_window7 | fit only on +-7 d around the outage | 11.58 | 1.266 | 738.1 | 14.69 | -7.9/-5.5/-7.4 | 1.403 | +0.87 | 0.94 |  |
@@ -143,6 +147,27 @@ Change: the judges score energy as the absolute deviation of the park total (the
 Result: park |E dev| E00 11.0 % -> E12 8.5 %; the top 4 configs are 8.2-8.6 %, within the noise (std per outage ~11 %, so +-2 pp on a 28-outage mean).
 Insight: at park level the gain is almost all bias removal (-8.5 % -> +1.4 %, noise unchanged). The power fix (E[P(v)]) is the main lever; direction sectors help per turbine and on RMSE but hardly on the park total (11.0 -> 10.9 %): direction fixes the differences between turbines, which cancel in the sum anyway; the error the turbines share (window-mean residuals correlate 0.64-0.84) is what drives the park total.
 Decision: keep E12 as BEST (most explainable of the top 4, best power RMSE after E11).
+
+### S01/S02 side experiments: small neural network
+
+Change: weighted, standardized 32/16 ReLU MLP; training-only chronological early stopping, then full-training refit. S01 uses exactly E12's features and power conversion; S02 uses seven smoothed references, two smoothed park means and direction sine/cosine.
+Result: 28 backtests plus validation each. S01/S02 bt ws RMSE 1.2012/1.2087 m/s, power RMSE 681.6/688.7 kW, park absolute energy deviation 9.0791/9.1310% (E12 8.5282%); validation park deviation -0.7667/+0.2481%. A repeat run reproduced every rounded summary metric exactly.
+Insight: the simple network matches the existing wind/power accuracy but adds no clear backtest energy gain; the single validation window looks better, which is insufficient to prefer it.
+Decision: retain as curiosity experiments; BEST remains E12. Config, per-window/step predictions, runtime versions and stopping metadata use the standard run artifacts. Details: [side-experiments](../docs/side-experiments.md).
+
+### S03 side experiment: TabPFN-3.5-Plus API
+
+Change: stable v3.5_default, eight estimators, KV cache, S02's 11 features; all eligible training rows except 512 reserved for residual calibration. Per-window JSON checkpoints allow resuming an interrupted run.
+Result: 28 backtests plus validation, 87 fits / 174 predictions, 38,880 complete prediction rows, 779.92 seconds. Backtest ws RMSE 1.2368 m/s, power RMSE 707.2 kW, park absolute energy deviation 9.2147% (E12 8.5282%); validation park deviation +1.2716%, ws RMSE 1.3778 m/s. Actual approved API usage 1.74 million tokens, matching preflight exactly; snapshots in `experiments/runs/S03_tabpfn35_refs_usage.json`.
+Insight: no gain over E12 on the aggregate backtest metrics; nominal 95% band coverage is only 73.08% (validation 72.72%). Random held-out calibration likely remains too optimistic for contiguous gaps because nearby context data are available; this is an interpretation, not a causal result.
+Decision: retain as a curiosity challenger, keep BEST unchanged, and inspect the existing out-of-sample calibration protocol as a cached diagnostic with no extra API calls. Details: [side-experiments](../docs/side-experiments.md).
+
+### S04 side diagnostic: cached TabPFN out-of-sample calibration
+
+Change: S03 predictions reused from all 29 completed checkpoints; apply existing E07 residual calibration using other nonoverlapping backtest windows, excluding validation donors. No new fits or API calls; all source checkpoints and S03 artifacts unchanged.
+Result: wind predictions unchanged to JSON floating-point precision (below 3e-15 m/s) and rounded wind metrics identical. Backtest coverage 73.08 -> 94.95%, power RMSE 707.2 -> 702.4 kW, park absolute energy deviation 9.2147 -> 11.2721%; validation coverage 93.79%, park deviation +2.2409%.
+Insight: correcting interval spread also changes expected power and can worsen energy totals. Donor models may have trained on labels from the scored window, so this E07-style protocol has indirect dependence and is a diagnostic rather than a strictly nested blocked evaluation.
+Decision: retain separately for understanding calibration, keep BEST unchanged. No extra API quota used. Details: [side-experiments](../docs/side-experiments.md).
 
 ### Diagnostic: where the remaining park error comes from (BEST)
 Change: none (analysis of the BEST backtest residuals).
