@@ -51,6 +51,19 @@ def render_methodology_story() -> None:
         st.metric("95 % band coverage", "94.8 %", "target 95 %", delta_color="off", border=True,
                   help="Share of true wind speeds inside the shown 95 % band.")
 
+    st.markdown("#### Baseline and what the final model adds")
+    st.markdown(
+        "- **Baseline:** one straight line per turbine, $v_T = a + b \\cdot \\overline{v}_H + c \\cdot \\overline{v}_O$, "
+        "on the 10-minute average wind of parks H and O. The predicted wind goes through the power curve.\n"
+        "- **Final model adds three things:**\n"
+        "    1. **1-hour averages** of the neighbours instead of raw 10-minute values: their gusts are noise.\n"
+        "    2. **Wind direction:** the offset and the H factor get one value per direction (8 sectors), "
+        "because terrain and park layout shelter T differently.\n"
+        "    3. **Averaged power:** power is averaged over the plausible wind range instead of taking the power "
+        "of the single best guess. This removes the baseline's -8.5 % energy bias.\n"
+        "- **Plus honest uncertainty:** a 95 % wind band per 10-minute step and a 95 % range for the lost energy."
+    )
+
     st.markdown("#### The model in one sentence")
     st.latex(r"v_T = a_{\text{dir}} + b_{\text{dir}} \cdot \overline{v}_H^{\,1h} + c \cdot \overline{v}_O^{\,1h}")
     st.markdown(
