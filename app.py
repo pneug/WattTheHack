@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Mapping, Protocol, Sequence
@@ -48,6 +48,7 @@ class AnalysisResult:
     energy_loss: dict[str, pd.DataFrame]
     turbine_types: list[str]
     available_turbines: list[str]
+    context_energy: dict[str, pd.DataFrame] = field(default_factory=dict)
 
 
 def apply_custom_theme() -> None:
@@ -300,9 +301,20 @@ def run_analysis(
     wind_table = to_wide(cleaned)
     predictions: dict[str, pd.DataFrame] = {}
     energy_loss: dict[str, pd.DataFrame] = {}
+    context_energy: dict[str, pd.DataFrame] = {}
+    outage_start = pd.Timestamp(outage_period[0])
+    outage_end = pd.Timestamp(outage_period[1]) + pd.Timedelta(days=1)
+    context_start = outage_start - pd.Timedelta(days=2)
+    context_end = outage_end + pd.Timedelta(days=2)
+    context_window = wind_table.loc[
+        (wind_table.index >= context_start)
+        & (wind_table.index < context_end)
+        & ((wind_table.index < outage_start) | (wind_table.index >= outage_end))
+    ]
     for turbine in TARGETS:
         if turbine not in target_names:
             continue
+        power_curve = get_power_curve(turbine)
         predictions[turbine] = calculate_predictions(
             wind_table,
             outage_period,
@@ -310,13 +322,23 @@ def run_analysis(
         )
         energy_loss[turbine] = calculate_energy_loss(
             predictions[turbine],
-            get_power_curve(turbine),
+            power_curve,
+        )
+        context_energy[turbine] = pd.DataFrame(
+            {
+                "timestamp": context_window.index,
+                "actual_yield_kwh": (
+                    wind_to_power(context_window[turbine], power_curve)
+                    * STEP_HOURS
+                ),
+            }
         )
     return AnalysisResult(
         predictions=predictions,
         energy_loss=energy_loss,
         turbine_types=[turbine for turbine in TARGETS if turbine in target_names],
         available_turbines=sorted(reference_names),
+        context_energy=context_energy,
     )
 
 
@@ -391,8 +413,9 @@ def render_dashboard(
         <div style="font-size: 2.5rem; font-weight: 700; line-height: 1.2;">
             {total_loss_label}
         </div>
-        <div style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">
-            Outage duration: <strong>{outage_hours} hours</strong>
+        <div style="font-size: 0.9rem; margin-top: 0.75rem; opacity: 0.9; line-height: 1.5;">
+            Period: <strong>{selected_period[0]:%d %b %Y} – {selected_period[1]:%d %b %Y}</strong><br>
+            Duration: <strong>{outage_hours} hours</strong>
         </div>
     </div>
     """,
@@ -419,7 +442,86 @@ def render_dashboard(
         0,
         _metric_summary_row("Total", total_energy, total_metrics),
     )
-    st.markdown("#### Metrics summary")
+    st.markdown("### Metrics summary")
+
+    context_frames = list(result.context_energy.values())
+    context_energy = (
+        pd.concat(context_frames, ignore_index=True)
+        if context_frames
+        else pd.DataFrame(columns=["timestamp", "actual_yield_kwh"])
+    )
+    actual_context_energy = (
+        context_energy.groupby("timestamp", as_index=False)["actual_yield_kwh"]
+        .sum(min_count=1)
+    )
+    estimated_outage_energy = (
+        total_energy.groupby("timestamp", as_index=False)["loss_kwh"]
+        .sum(min_count=1)
+        .dropna(subset=["loss_kwh"])
+    )
+    aggregated_loss_kwh = estimated_outage_energy["loss_kwh"].sum(min_count=1)
+    aggregated_loss_label = (
+        f"{aggregated_loss_kwh:,.1f} kWh"
+        if pd.notna(aggregated_loss_kwh)
+        else "N/A"
+    )
+    # st.markdown(
+    #     f"#### Aggregated energy around the outage · estimated outage loss: "
+    #     f"**{aggregated_loss_label}**"
+    # )
+    context_figure = go.Figure()
+    if not actual_context_energy.empty:
+        chart_start = pd.Timestamp(selected_period[0]) - pd.Timedelta(days=2)
+        chart_end = pd.Timestamp(selected_period[1]) + pd.Timedelta(days=3)
+        chart_timestamps = pd.date_range(
+            chart_start,
+            chart_end,
+            freq=pd.Timedelta(hours=STEP_HOURS),
+            inclusive="left",
+        )
+        measured_energy = actual_context_energy.set_index("timestamp")[
+            "actual_yield_kwh"
+        ].reindex(chart_timestamps)
+        context_figure.add_trace(
+            go.Scatter(
+                x=chart_timestamps,
+                y=measured_energy,
+                name="Observed energy yield",
+                mode="lines",
+                connectgaps=False,
+                line={"color": PRIMARY_GREEN, "width": 2},
+                hovertemplate="%{x}<br>%{y:.2f} kWh<extra>Observed energy yield</extra>",
+            )
+        )
+    if not estimated_outage_energy.empty:
+        context_figure.add_trace(
+            go.Line(
+                x=estimated_outage_energy["timestamp"],
+                y=estimated_outage_energy["loss_kwh"],
+                name="Estimated outage energy (loss)",
+                marker_color=OUTAGE_YELLOW,
+                hovertemplate="%{x}<br>%{y:.2f} kWh<extra>Estimated outage energy</extra>",
+            )
+        )
+    context_figure.add_vrect(
+        x0=pd.Timestamp(selected_period[0]),
+        x1=pd.Timestamp(selected_period[1]) + pd.Timedelta(days=1),
+        fillcolor=OUTAGE_YELLOW,
+        opacity=0.12,
+        line_width=0,
+        annotation_text="Outage",
+        annotation_position="top left",
+    )
+    context_figure.update_layout(
+        template="baywa",
+        height=370,
+        barmode="overlay",
+        xaxis_title="Time",
+        yaxis_title="Energy per 10-minute interval (kWh)",
+        legend={"orientation": "h", "y": 1.12},
+    )
+    st.plotly_chart(context_figure, width="stretch")
+
     missing_turbines = [
         turbine for turbine in TARGETS if turbine not in result.turbine_types
     ]
@@ -526,7 +628,7 @@ def render_dashboard(
         height=370,
         barmode="stack",
         xaxis_title="Time",
-        yaxis_title="Estimated energy loss (kWh / 10 min)",
+        yaxis_title="Estimated energy loss per 10-minute interval (kWh)",
         legend={"orientation": "h", "y": 1.12},
     )
     st.plotly_chart(total_loss_figure, width="stretch")
@@ -565,57 +667,57 @@ def render_dashboard(
     for turbine in result.turbine_types:
         turbine_predictions = result.predictions[turbine]
         turbine_energy = result.energy_loss[turbine]
-        st.markdown(f"### {turbine}")
-        chart_column, loss_column = st.columns([1.6, 1])
-        with chart_column:
-            st.markdown("#### Wind speed")
-            wind_figure = go.Figure()
-            wind_figure.add_trace(
-                go.Scatter(
-                    x=turbine_predictions["timestamp"],
-                    y=turbine_predictions["actual_wind_speed"],
-                    name="Actual",
-                    mode="lines",
-                    line={"color": "#20332a", "width": 2},
+        with st.expander(f"{turbine} detailed insights"):
+            chart_column, loss_column = st.columns([1.6, 1])
+            with chart_column:
+                st.markdown("#### Wind speed")
+                wind_figure = go.Figure()
+                wind_figure.add_trace(
+                    go.Scatter(
+                        x=turbine_predictions["timestamp"],
+                        y=turbine_predictions["actual_wind_speed"],
+                        name="Actual",
+                        mode="lines",
+                        line={"color": "#20332a", "width": 2},
+                    )
                 )
-            )
-            wind_figure.add_trace(
-                go.Scatter(
-                    x=turbine_predictions["timestamp"],
-                    y=turbine_predictions["predicted_wind_speed"],
-                    name="Baseline prediction",
-                    mode="lines",
-                    line={"color": turbine_colors[turbine], "width": 2},
+                wind_figure.add_trace(
+                    go.Scatter(
+                        x=turbine_predictions["timestamp"],
+                        y=turbine_predictions["predicted_wind_speed"],
+                        name="Baseline prediction",
+                        mode="lines",
+                        line={"color": turbine_colors[turbine], "width": 2},
+                    )
                 )
-            )
-            wind_figure.update_layout(
-                template="baywa",
-                height=370,
-                xaxis_title="Time",
-                yaxis_title="Wind speed (m/s)",
-                legend={"orientation": "h", "y": 1.12},
-            )
-            st.plotly_chart(wind_figure, width="stretch")
+                wind_figure.update_layout(
+                    template="baywa",
+                    height=370,
+                    xaxis_title="Time",
+                    yaxis_title="Wind speed (m/s)",
+                    legend={"orientation": "h", "y": 1.12},
+                )
+                st.plotly_chart(wind_figure, width="stretch")
 
-        with loss_column:
-            st.markdown("#### Estimated energy")
-            loss_figure = go.Figure(
-                go.Bar(
-                    x=turbine_energy["timestamp"],
-                    y=turbine_energy["loss_kwh"],
-                    name="Estimated lost yield",
-                    marker_color=turbine_colors[turbine],
-                    hovertemplate="%{x}<br>%{y:.2f} kWh<extra></extra>",
+            with loss_column:
+                st.markdown("#### Estimated energy")
+                loss_figure = go.Figure(
+                    go.Bar(
+                        x=turbine_energy["timestamp"],
+                        y=turbine_energy["loss_kwh"],
+                        name="Estimated lost yield",
+                        marker_color=turbine_colors[turbine],
+                        hovertemplate="%{x}<br>%{y:.2f} kWh<extra></extra>",
+                    )
                 )
-            )
-            loss_figure.update_layout(
-                template="baywa",
-                height=370,
-                xaxis_title="Time",
-                yaxis_title="Energy (kWh / 10 min)",
-                showlegend=False,
-            )
-            st.plotly_chart(loss_figure, width="stretch")
+                loss_figure.update_layout(
+                    template="baywa",
+                    height=370,
+                    xaxis_title="Time",
+                    yaxis_title="Energy per 10-minute interval (kWh)",
+                    showlegend=False,
+                )
+                st.plotly_chart(loss_figure, width="stretch")
 
     # st.markdown("#### Prediction Method")
     # st.markdown(
